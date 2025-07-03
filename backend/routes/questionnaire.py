@@ -1,144 +1,292 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
+from flask_cors import cross_origin
+import uuid
 from datetime import datetime
+from typing import Dict, Any
 
-from models import db
-from models.company import Company
-from models.simulation import QuestionnaireResponse
+from models.questionnaire import db, QuestionnaireSession, QuestionnaireResponse, QuestionnaireAnalysis
+from services.questionnaire_flow import QuestionnaireFlow
+from services.ai_analyzer import AIAnalyzer
 
 questionnaire_bp = Blueprint('questionnaire', __name__)
+flow = QuestionnaireFlow()
+ai_analyzer = AIAnalyzer()
 
-@questionnaire_bp.route('/submit', methods=['POST'])
-def submit_questionnaire():
+@questionnaire_bp.route('/api/questionnaire/start', methods=['POST'])
+@cross_origin()
+def start_questionnaire():
+    """Start a new questionnaire session."""
     try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        
+        data = request.get_json() or {}
         company_id = data.get('company_id')
-        responses = data.get('responses', [])
         
-        if not company_id:
-            return jsonify({'error': 'Company ID required'}), 400
+        # Create new session
+        session_id = str(uuid.uuid4())
+        session = QuestionnaireSession(
+            id=session_id,
+            company_id=company_id,
+            current_question='START'
+        )
         
-        if not responses:
-            return jsonify({'error': 'No responses provided'}), 400
-        
-        company = Company.query.get(company_id)
-        if not company:
-            return jsonify({'error': 'Company not found'}), 404
-        
-        saved_responses = []
-        
-        for response_data in responses:
-            question_id = response_data.get('question_id')
-            answer = response_data.get('answer')
-            
-            if not question_id or answer is None:
-                continue
-            
-            # Check if response already exists, update if it does
-            existing_response = QuestionnaireResponse.query.filter_by(
-                company_id=company_id,
-                question_id=question_id
-            ).first()
-            
-            if existing_response:
-                existing_response.answer = answer
-                existing_response.answered_at = datetime.utcnow()
-                saved_responses.append(existing_response)
-            else:
-                new_response = QuestionnaireResponse(
-                    company_id=company_id,
-                    question_id=question_id,
-                    answer=answer
-                )
-                db.session.add(new_response)
-                saved_responses.append(new_response)
-        
+        db.session.add(session)
         db.session.commit()
         
-        current_app.logger.info(f"Questionnaire submitted for company {company_id}: {len(saved_responses)} responses")
+        # Get first question
+        first_question = flow.get_question('START')
         
         return jsonify({
-            'message': 'Questionnaire submitted successfully',
-            'company_id': company_id,
-            'responses_saved': len(saved_responses),
-            'timestamp': datetime.utcnow().isoformat()
-        }), 201
+            'success': True,
+            'session_id': session_id,
+            'question': first_question
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@questionnaire_bp.route('/api/questionnaire/<session_id>/answer', methods=['POST'])
+@cross_origin()
+def submit_answer(session_id: str):
+    """Submit an answer and get the next question."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        answer = data.get('answer')
+        if answer is None:
+            return jsonify({'success': False, 'error': 'Answer is required'}), 400
+        
+        # Get session
+        session = QuestionnaireSession.query.filter_by(id=session_id).first()
+        if not session:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        if session.status != 'in_progress':
+            return jsonify({'success': False, 'error': 'Session is not active'}), 400
+        
+        current_question_id = session.current_question
+        
+        # Validate answer
+        if not flow.validate_answer(current_question_id, answer):
+            return jsonify({'success': False, 'error': 'Invalid answer for this question'}), 400
+        
+        # Get current question for storing response
+        current_question = flow.get_question(current_question_id)
+        
+        # Store response
+        response = QuestionnaireResponse(
+            session_id=session_id,
+            question_id=current_question_id,
+            question_text=current_question['question'],
+            answer=str(answer),
+            answer_type=current_question['type']
+        )
+        
+        db.session.add(response)
+        
+        # Check if questionnaire is complete
+        if flow.is_complete(current_question_id, answer):
+            session.status = 'completed'
+            session.completed_at = datetime.utcnow()
+            db.session.commit()
+            
+            # Trigger AI analysis
+            try:
+                ai_analyzer.analyze_session(session_id)
+            except Exception as e:
+                print(f"AI analysis failed: {e}")
+            
+            return jsonify({
+                'success': True,
+                'completed': True,
+                'message': 'Questionnaire completed successfully'
+            }), 200
+        
+        # Get next question
+        next_question_id = flow.get_next_question_id(current_question_id, answer)
+        if not next_question_id:
+            return jsonify({'success': False, 'error': 'Unable to determine next question'}), 500
+        
+        # Update session
+        session.current_question = next_question_id
+        db.session.commit()
+        
+        # Get next question data
+        next_question = flow.get_question(next_question_id)
+        
+        return jsonify({
+            'success': True,
+            'completed': False,
+            'question': next_question
+        }), 200
         
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Questionnaire submission error: {e}")
-        return jsonify({'error': 'Submission failed'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-@questionnaire_bp.route('/<int:company_id>', methods=['GET'])
-def get_questionnaire_responses(company_id):
+@questionnaire_bp.route('/api/questionnaire/<session_id>/status', methods=['GET'])
+@cross_origin()
+def get_session_status(session_id: str):
+    """Get the current status of a questionnaire session."""
     try:
-        company = Company.query.get(company_id)
-        if not company:
-            return jsonify({'error': 'Company not found'}), 404
+        session = QuestionnaireSession.query.filter_by(id=session_id).first()
+        if not session:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
         
-        responses = QuestionnaireResponse.query.filter_by(company_id=company_id).all()
+        # Get current question if session is in progress
+        current_question = None
+        if session.status == 'in_progress':
+            current_question = flow.get_question(session.current_question)
+        
+        # Get response count
+        response_count = QuestionnaireResponse.query.filter_by(session_id=session_id).count()
+        
+        return jsonify({
+            'success': True,
+            'session': {
+                'id': session.id,
+                'status': session.status,
+                'started_at': session.started_at.isoformat(),
+                'completed_at': session.completed_at.isoformat() if session.completed_at else None,
+                'response_count': response_count,
+                'current_question': current_question
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@questionnaire_bp.route('/api/questionnaire/<session_id>/responses', methods=['GET'])
+@cross_origin()
+def get_session_responses(session_id: str):
+    """Get all responses for a session."""
+    try:
+        session = QuestionnaireSession.query.filter_by(id=session_id).first()
+        if not session:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        responses = QuestionnaireResponse.query.filter_by(session_id=session_id).order_by(QuestionnaireResponse.answered_at).all()
         
         response_data = []
-        for response in responses:
-            response_data.append(response.to_dict())
+        for resp in responses:
+            response_data.append({
+                'question_id': resp.question_id,
+                'question_text': resp.question_text,
+                'answer': resp.answer,
+                'answer_type': resp.answer_type,
+                'answered_at': resp.answered_at.isoformat(),
+                'ai_analyzed': resp.ai_analyzed,
+                'extracted_insights': resp.extracted_insights
+            })
         
         return jsonify({
-            'company_id': company_id,
-            'responses': response_data,
-            'total_responses': len(response_data),
-            'timestamp': datetime.utcnow().isoformat()
+            'success': True,
+            'session_id': session_id,
+            'responses': response_data
         }), 200
         
     except Exception as e:
-        current_app.logger.error(f"Get questionnaire responses error: {e}")
-        return jsonify({'error': 'Failed to retrieve responses'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-@questionnaire_bp.route('/questions', methods=['GET'])
-def get_questions():
+@questionnaire_bp.route('/api/questionnaire/<session_id>/analysis', methods=['GET'])
+@cross_origin()
+def get_session_analysis(session_id: str):
+    """Get AI analysis results for a completed session."""
     try:
-        # Placeholder question set - customize based on business needs
-        questions = [
-            {
-                'id': 'business_model',
-                'text': 'What is your primary business model?',
-                'type': 'multiple_choice',
-                'options': ['B2B SaaS', 'E-commerce', 'Service-based', 'Manufacturing', 'Other']
-            },
-            {
-                'id': 'revenue_streams',
-                'text': 'What are your main revenue streams?',
-                'type': 'text',
-                'placeholder': 'Describe your revenue streams...'
-            },
-            {
-                'id': 'customer_segments',
-                'text': 'Who are your primary customer segments?',
-                'type': 'text',
-                'placeholder': 'Describe your customer segments...'
-            },
-            {
-                'id': 'growth_challenges',
-                'text': 'What are your biggest growth challenges?',
-                'type': 'multiple_choice',
-                'options': ['Customer acquisition', 'Operational efficiency', 'Cost management', 'Market expansion', 'Product development']
-            },
-            {
-                'id': 'optimization_goals',
-                'text': 'What would you like to optimize?',
-                'type': 'checkbox',
-                'options': ['Revenue growth', 'Cost reduction', 'Profit margins', 'Operational efficiency', 'Market share']
-            }
-        ]
+        session = QuestionnaireSession.query.filter_by(id=session_id).first()
+        if not session:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        analysis = QuestionnaireAnalysis.query.filter_by(session_id=session_id).first()
+        if not analysis:
+            return jsonify({'success': False, 'error': 'Analysis not found or not yet completed'}), 404
         
         return jsonify({
-            'questions': questions,
-            'total_questions': len(questions),
-            'timestamp': datetime.utcnow().isoformat()
+            'success': True,
+            'analysis': {
+                'company_type': analysis.company_type,
+                'industry': analysis.industry,
+                'size_category': analysis.size_category,
+                'production_volume': analysis.production_volume,
+                'pain_points': analysis.get_pain_points(),
+                'opportunities': analysis.get_opportunities(),
+                'automation_level': analysis.automation_level,
+                'priority_areas': analysis.get_priority_areas(),
+                'confidence_score': analysis.confidence_score,
+                'analyzed_at': analysis.analyzed_at.isoformat()
+            }
         }), 200
         
     except Exception as e:
-        current_app.logger.error(f"Get questions error: {e}")
-        return jsonify({'error': 'Failed to retrieve questions'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@questionnaire_bp.route('/api/questionnaire/flow', methods=['GET'])
+@cross_origin()
+def get_questionnaire_flow():
+    """Get the complete questionnaire flow for reference."""
+    try:
+        all_questions = flow.get_all_questions()
+        return jsonify({
+            'success': True,
+            'questions': all_questions
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@questionnaire_bp.route('/api/questionnaire/<session_id>/restart', methods=['POST'])
+@cross_origin()
+def restart_questionnaire(session_id: str):
+    """Restart a questionnaire session."""
+    try:
+        session = QuestionnaireSession.query.filter_by(id=session_id).first()
+        if not session:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Clear existing responses
+        QuestionnaireResponse.query.filter_by(session_id=session_id).delete()
+        
+        # Clear existing analysis
+        QuestionnaireAnalysis.query.filter_by(session_id=session_id).delete()
+        
+        # Reset session
+        session.current_question = 'START'
+        session.status = 'in_progress'
+        session.completed_at = None
+        session.started_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Get first question
+        first_question = flow.get_question('START')
+        
+        return jsonify({
+            'success': True,
+            'message': 'Questionnaire restarted',
+            'question': first_question
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
