@@ -44,12 +44,20 @@ const Overview = () => {
             Get real-time insights, predictive analytics, and actionable recommendations 
             to drive growth and efficiency.
           </p>
-          <Link to="/sandbox">
-            <Button className="professional-button text-lg px-8 py-4">
-              Get Started
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/simulation">
+              <Button className="professional-button text-lg px-8 py-4">
+                Start Business Analysis
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+            <Link to="/sandbox">
+              <Button variant="outline" className="border-purple-600 text-purple-600 hover:bg-purple-50 text-lg px-8 py-4">
+                Try The Sandbox
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
 

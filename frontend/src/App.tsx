@@ -8,6 +8,7 @@ import Layout from "./components/Layout";
 import Overview from "./pages/Overview";
 import AboutUs from "./pages/AboutUs";
 import Sandbox from "./pages/Sandbox";
+import BusinessSimulation from "./pages/BusinessSimulation";
 import CaseStudies from "./pages/CaseStudies";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route index element={<Overview />} />
             <Route path="about" element={<AboutUs />} />
             <Route path="sandbox" element={<Sandbox />} />
+            <Route path="simulation" element={<BusinessSimulation />} />
             <Route path="case-studies" element={<CaseStudies />} />
           </Route>
           <Route path="*" element={<NotFound />} />

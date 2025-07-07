@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON
 from . import db
 
 class PLStatement(db.Model):
@@ -11,7 +11,7 @@ class PLStatement(db.Model):
     cogs = db.Column(db.Numeric(12, 2))
     labor_costs = db.Column(db.Numeric(12, 2))
     overhead_costs = db.Column(db.Numeric(12, 2))
-    other_costs = db.Column(JSONB)
+    other_costs = db.Column(JSON)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
@@ -55,9 +55,9 @@ class Simulation(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
-    baseline_data = db.Column(JSONB)
-    optimized_data = db.Column(JSONB)
-    assumptions = db.Column(JSONB)
+    baseline_data = db.Column(JSON)
+    optimized_data = db.Column(JSON)
+    assumptions = db.Column(JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     recommendations = db.relationship('Recommendation', backref='simulation', lazy=True, cascade='all, delete-orphan')

@@ -10,6 +10,7 @@ const Navigation = () => {
     { name: 'Overview', path: '/' },
     { name: 'About Us', path: '/about' },
     { name: 'The Sandbox', path: '/sandbox' },
+    { name: 'Business Simulation', path: '/simulation' },
     { name: 'Case Studies', path: '/case-studies' },
   ];
 

@@ -41,12 +41,14 @@ def create_app(config_name=None):
     from routes.questionnaire import questionnaire_bp
     from routes.simulation import simulation_bp
     from routes.recommendations import recommendations_bp
+    from routes.companies import companies_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(questionnaire_bp, url_prefix='/api/questionnaire')
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
     app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
+    app.register_blueprint(companies_bp, url_prefix='/api/companies')
     
     # Health check endpoint
     @app.route('/health')

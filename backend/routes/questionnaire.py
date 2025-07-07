@@ -252,6 +252,83 @@ def get_questionnaire_flow():
             'error': str(e)
         }), 500
 
+@questionnaire_bp.route('/next', methods=['POST'])
+@cross_origin()
+def get_next_question():
+    """Get the next question in the dynamic questionnaire flow."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        company_id = data.get('companyId')
+        previous_answers = data.get('previousAnswers', {})
+        
+        # Create a simple dynamic questionnaire based on previous answers
+        questions = [
+            {
+                'id': 'q1',
+                'text': 'What is your primary business focus?',
+                'type': 'select',
+                'options': ['Manufacturing', 'Services', 'Retail', 'Technology'],
+                'required': True
+            },
+            {
+                'id': 'q2',
+                'text': 'How many employees does your company have?',
+                'type': 'select',
+                'options': ['1-10', '11-50', '51-200', '200+'],
+                'required': True
+            },
+            {
+                'id': 'q3',
+                'text': 'What is your current annual revenue?',
+                'type': 'select',
+                'options': ['Under $1M', '$1M-$10M', '$10M-$50M', 'Over $50M'],
+                'required': True
+            },
+            {
+                'id': 'q4',
+                'text': 'What are your biggest operational challenges?',
+                'type': 'textarea',
+                'required': True
+            },
+            {
+                'id': 'q5',
+                'text': 'How would you describe your current level of automation?',
+                'type': 'select',
+                'options': ['Mostly manual processes', 'Some automated tools', 'Moderate automation', 'Highly automated'],
+                'required': True
+            }
+        ]
+        
+        # Determine which question to return based on previous answers
+        answered_count = len(previous_answers)
+        
+        if answered_count >= len(questions):
+            # All questions answered, questionnaire complete
+            return jsonify({
+                'data': {
+                    'completed': True,
+                    'message': 'Questionnaire completed successfully'
+                }
+            }), 200
+        
+        # Return the next question
+        next_question = questions[answered_count]
+        
+        return jsonify({
+            'data': {
+                'question': next_question
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @questionnaire_bp.route('/api/questionnaire/<session_id>/restart', methods=['POST'])
 @cross_origin()
 def restart_questionnaire(session_id: str):

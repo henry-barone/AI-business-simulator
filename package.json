@@ -1,0 +1,23 @@
+{
+  "name": "ai-business-sim-dev",
+  "version": "1.0.0",
+  "description": "AI Business Simulation Development Environment",
+  "scripts": {
+    "dev": "python dev-server.py",
+    "start": "./start-dev.sh",
+    "backend": "cd backend && python -c \"from app import create_app; app = create_app(); app.run(debug=True, host='0.0.0.0', port=5001)\"",
+    "frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && pip install -r requirements.txt && cd ../frontend && npm install",
+    "test:backend": "curl -s http://localhost:5001/health || echo 'Backend not running'",
+    "test:frontend": "curl -s -I http://localhost:8080/ || echo 'Frontend not running'",
+    "test:api": "curl -s -X POST http://localhost:5001/api/companies -H 'Content-Type: application/json' -d '{\"name\":\"Test Company\",\"industry\":\"Manufacturing\"}' || echo 'API test failed'"
+  },
+  "keywords": [
+    "ai",
+    "business",
+    "simulation",
+    "development"
+  ],
+  "author": "AI Business Sim Team",
+  "license": "MIT"
+}
