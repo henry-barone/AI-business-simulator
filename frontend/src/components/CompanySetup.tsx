@@ -8,12 +8,14 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
 
 interface CompanySetupProps {
-  onComplete: (companyData: { id: string; name: string; industry: string }) => void;
+  onComplete: (companyData: { id: string; name: string; industry: string; email: string; emailConsent: boolean }) => void;
 }
 
 const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
   const [companyName, setCompanyName] = useState('');
   const [industry, setIndustry] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailConsent, setEmailConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -30,13 +32,27 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
     'Other'
   ];
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!companyName.trim() || !industry) {
+    if (!companyName.trim() || !industry || !email.trim()) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
         variant: "destructive"
       });
       return;
@@ -48,14 +64,18 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
         method: 'POST',
         body: JSON.stringify({
           name: companyName.trim(),
-          industry: industry
+          industry: industry,
+          email: email.trim(),
+          emailConsent: emailConsent
         }),
       });
 
       onComplete({
         id: data.data.id,
         name: companyName.trim(),
-        industry: industry
+        industry: industry,
+        email: email.trim(),
+        emailConsent: emailConsent
       });
     } catch (error) {
       console.error('Company setup error:', error);
@@ -107,6 +127,34 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3">
+              <input
+                type="checkbox"
+                id="emailConsent"
+                checked={emailConsent}
+                onChange={(e) => setEmailConsent(e.target.checked)}
+                className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 mt-1"
+              />
+              <label htmlFor="emailConsent" className="text-sm text-gray-600 leading-relaxed">
+                I agree to receive the AI assessment report via email and occasional updates about SPAIK's AI solutions.
+              </label>
+            </div>
           </div>
 
           <Button

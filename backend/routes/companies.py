@@ -39,6 +39,8 @@ def create_company():
         
         name = data.get('name')
         industry = data.get('industry')
+        email = data.get('email')
+        email_consent = data.get('emailConsent', False)
         
         if not name:
             return jsonify({'error': 'Company name is required'}), 400
@@ -49,7 +51,14 @@ def create_company():
         
         # Check for duplicate company names and handle by adding timestamp
         try:
-            existing_company = Company.query.filter_by(name=name).first()
+            # Try to check for existing company, but handle if email columns don't exist yet
+            try:
+                existing_company = Company.query.filter_by(name=name).first()
+            except Exception as column_error:
+                # If email columns don't exist, skip duplicate check for now
+                current_app.logger.warning(f"Column error (likely missing email fields): {column_error}")
+                existing_company = None
+                
             if existing_company:
                 # Generate unique name by appending timestamp
                 from datetime import datetime
@@ -62,7 +71,18 @@ def create_company():
         
         # Create company - only use fields that exist in the model
         try:
-            company = Company(name=name, industry=industry)
+            # Try to create with email fields, fall back to basic fields if columns don't exist
+            try:
+                company = Company(
+                    name=name, 
+                    industry=industry,
+                    email=email,
+                    email_consent=email_consent
+                )
+            except Exception as create_error:
+                current_app.logger.warning(f"Creating company without email fields: {create_error}")
+                company = Company(name=name, industry=industry)
+                
             db.session.add(company)
             db.session.commit()
         except Exception as db_error:

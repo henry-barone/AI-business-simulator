@@ -7,6 +7,8 @@ class Company(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     industry = db.Column(db.String(100))
+    email = db.Column(db.String(255))
+    email_consent = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     webhook_triggered = db.Column(db.Boolean, default=False)
     
@@ -22,6 +24,8 @@ class Company(db.Model):
             'id': self.id,
             'name': self.name,
             'industry': self.industry,
+            'email': self.email,
+            'email_consent': self.email_consent,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'webhook_triggered': self.webhook_triggered
         }

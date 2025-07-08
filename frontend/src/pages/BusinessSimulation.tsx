@@ -17,6 +17,8 @@ interface CompanyData {
   id: string;
   name: string;
   industry: string;
+  email: string;
+  emailConsent: boolean;
 }
 
 interface SimulationData {
