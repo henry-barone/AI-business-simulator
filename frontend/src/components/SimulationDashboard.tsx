@@ -39,6 +39,10 @@ interface SimulationData {
     total_investment: number;
     payback_months: number;
     roi_percentage: number;
+    annual_roi?: number;
+    three_year_roi?: number;
+    five_year_roi?: number;
+    break_even_date?: string;
   };
 }
 
@@ -110,38 +114,58 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
               cumulative: cumulativeSavings
             };
           }),
-          recommendations: [
+          recommendations: enhancedData.smart_recommendations || [
             {
-              type: "Labor Automation",
+              title: "Labor Automation",
               description: "Implement AI-powered labor optimization systems",
-              savings: laborSavings,
-              cost: (enhancedData.optimizations?.labor?.implementation_cost || 0) + 
+              annual_savings: laborSavings,
+              implementation_cost: (enhancedData.optimizations?.labor?.implementation_cost || 0) + 
                     (enhancedData.optimizations?.labor?.training_cost || 0),
-              priority: 1
+              priority: 1,
+              type: 'standard',
+              three_year_savings: laborSavings * 3,
+              five_year_savings: laborSavings * 5,
+              three_year_roi: 0,
+              payback_months: 12
             },
             {
-              type: "Quality Control",
+              title: "Quality Control",
               description: "Deploy automated quality assurance and inspection systems",
-              savings: qualitySavings,
-              cost: (enhancedData.optimizations?.quality?.quality_system_cost || 0) + 
+              annual_savings: qualitySavings,
+              implementation_cost: (enhancedData.optimizations?.quality?.quality_system_cost || 0) + 
                     (enhancedData.optimizations?.quality?.training_cost || 0),
-              priority: 2
+              priority: 2,
+              type: 'standard',
+              three_year_savings: qualitySavings * 3,
+              five_year_savings: qualitySavings * 5,
+              three_year_roi: 0,
+              payback_months: 12
             },
             {
-              type: "Inventory Management",
+              title: "Inventory Management",
               description: "Optimize inventory with smart forecasting and automated tracking",
-              savings: inventorySavings,
-              cost: (enhancedData.optimizations?.inventory?.system_cost || 0) + 
+              annual_savings: inventorySavings,
+              implementation_cost: (enhancedData.optimizations?.inventory?.system_cost || 0) + 
                     (enhancedData.optimizations?.inventory?.training_cost || 0),
-              priority: 3
+              priority: 3,
+              type: 'standard',
+              three_year_savings: inventorySavings * 3,
+              five_year_savings: inventorySavings * 5,
+              three_year_roi: 0,
+              payback_months: 12
             },
             {
-              type: "Customer Service",
+              title: "Customer Service",
               description: "Automate customer service with AI-powered support systems",
-              savings: serviceSavings,
-              cost: (enhancedData.optimizations?.service?.automation_platform_cost || 0) + 
+              annual_savings: serviceSavings,
+              implementation_cost: (enhancedData.optimizations?.service?.automation_platform_cost || 0) + 
                     (enhancedData.optimizations?.service?.setup_cost || 0),
-              priority: 4
+              priority: 4,
+              type: 'standard',
+              three_year_savings: serviceSavings * 3,
+              five_year_savings: serviceSavings * 5,
+              three_year_roi: 0,
+              payback_months: 12
             }
           ],
           roi_metrics: {
@@ -149,7 +173,11 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
             payback_months: enhancedData.break_even_analysis?.break_even_month || 
                            enhancedData.metrics?.payback_months || 12,
             roi_percentage: enhancedData.break_even_analysis?.final_roi_percentage || 
-                           enhancedData.metrics?.roi_percentage || 0
+                           enhancedData.metrics?.roi_percentage || 0,
+            annual_roi: enhancedData.roi_metrics?.annual_roi || enhancedData.break_even_analysis?.roi_metrics?.annual_roi || 0,
+            three_year_roi: enhancedData.roi_metrics?.three_year_roi || enhancedData.break_even_analysis?.roi_metrics?.three_year_roi || 0,
+            five_year_roi: enhancedData.roi_metrics?.five_year_roi || enhancedData.break_even_analysis?.roi_metrics?.five_year_roi || 0,
+            break_even_date: enhancedData.roi_metrics?.break_even_date || enhancedData.break_even_analysis?.roi_metrics?.break_even_date
           },
           summary_metrics: {
             total_savings: enhancedData.summary?.total_annual_savings || 0,
@@ -252,8 +280,12 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
             <div className="flex items-center gap-3">
               <TrendingUp className="h-8 w-8 text-purple-600" />
               <div>
-                <p className="text-sm text-gray-600">ROI</p>
-                <p className="text-2xl font-bold text-purple-600">{data.roi_metrics.roi_percentage}%</p>
+                <p className="text-sm text-gray-600">3-Year ROI</p>
+                <p className={`text-2xl font-bold ${
+                  (data.roi_metrics.three_year_roi || data.roi_metrics.roi_percentage || 0) >= 0 ? 'text-purple-600' : 'text-red-600'
+                }`}>
+                  {(data.roi_metrics.three_year_roi || data.roi_metrics.roi_percentage || 0).toFixed(0)}%
+                </p>
               </div>
             </div>
           </CardContent>
@@ -283,6 +315,79 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Comprehensive ROI Metrics */}
+      <Card className="professional-card">
+        <CardHeader>
+          <CardTitle className="professional-heading">Return on Investment Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Total Investment</p>
+              <p className="text-xl font-bold text-gray-900">${data.roi_metrics.total_investment.toLocaleString()}</p>
+            </div>
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Annual ROI</p>
+              <p className={`text-xl font-bold ${
+                (data.roi_metrics.annual_roi || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {(data.roi_metrics.annual_roi || 0).toFixed(0)}%
+              </p>
+            </div>
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">3-Year ROI</p>
+              <p className={`text-xl font-bold ${
+                (data.roi_metrics.three_year_roi || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {(data.roi_metrics.three_year_roi || 0).toFixed(0)}%
+              </p>
+            </div>
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">5-Year ROI</p>
+              <p className={`text-xl font-bold ${
+                (data.roi_metrics.five_year_roi || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {(data.roi_metrics.five_year_roi || 0).toFixed(0)}%
+              </p>
+            </div>
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">Break-Even</p>
+              <p className="text-xl font-bold text-blue-600">
+                {data.roi_metrics.break_even_date ? 
+                  new Date(data.roi_metrics.break_even_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) :
+                  `${data.roi_metrics.payback_months} mo`
+                }
+              </p>
+            </div>
+          </div>
+          
+          {/* ROI Status Indicator */}
+          <div className={`mt-6 p-4 rounded-lg ${
+            (data.roi_metrics.three_year_roi || 0) >= 100 ? 'bg-green-50 border border-green-200' :
+            (data.roi_metrics.three_year_roi || 0) >= 50 ? 'bg-yellow-50 border border-yellow-200' :
+            'bg-red-50 border border-red-200'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${
+                (data.roi_metrics.three_year_roi || 0) >= 100 ? 'bg-green-500' :
+                (data.roi_metrics.three_year_roi || 0) >= 50 ? 'bg-yellow-500' :
+                'bg-red-500'
+              }`}></div>
+              <p className="text-sm font-medium">
+                {(data.roi_metrics.three_year_roi || 0) >= 100 ? 
+                  'Excellent ROI - Strong investment opportunity with high returns' :
+                (data.roi_metrics.three_year_roi || 0) >= 50 ? 
+                  'Good ROI - Positive investment with moderate returns' :
+                (data.roi_metrics.three_year_roi || 0) >= 0 ? 
+                  'Break-even - Investment recovers costs over time' :
+                  'Negative ROI - Investment may not recover costs in projected timeframe'
+                }
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Before/After Comparison */}
       <Card className="professional-card">
@@ -382,16 +487,52 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
             {data.recommendations
               .sort((a, b) => a.priority - b.priority)
               .map((rec, index) => (
-                <div key={index} className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-gray-900">{rec.description}</h4>
-                      <Badge variant="outline">Priority {rec.priority}</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                      <div>Annual Savings: <span className="font-medium text-green-600">${rec.savings.toLocaleString()}</span></div>
-                      <div>Implementation Cost: <span className="font-medium text-gray-900">${rec.cost.toLocaleString()}</span></div>
+                <div key={index} className={`p-4 border rounded-lg ${
+                  rec.type === 'quick_win' ? 'border-green-300 bg-green-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <CheckCircle className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold text-gray-900">{rec.title || rec.description}</h4>
+                        <Badge variant="outline">Priority {rec.priority}</Badge>
+                        {rec.type === 'quick_win' && (
+                          <Badge className="bg-green-100 text-green-800">Quick Win</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{rec.description}</p>
+                      
+                      {/* Financial Metrics Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="text-center p-2 bg-white rounded border">
+                          <p className="text-gray-600">Annual Savings</p>
+                          <p className="font-medium text-green-600">${(rec.annual_savings || rec.savings || 0).toLocaleString()}</p>
+                        </div>
+                        <div className="text-center p-2 bg-white rounded border">
+                          <p className="text-gray-600">3-Year ROI</p>
+                          <p className={`font-medium ${
+                            (rec.three_year_roi || 0) >= 50 ? 'text-green-600' : 'text-yellow-600'
+                          }`}>
+                            {(rec.three_year_roi || 0).toFixed(0)}%
+                          </p>
+                        </div>
+                        <div className="text-center p-2 bg-white rounded border">
+                          <p className="text-gray-600">Payback Period</p>
+                          <p className="font-medium text-blue-600">{rec.payback_months || 12} months</p>
+                        </div>
+                        <div className="text-center p-2 bg-white rounded border">
+                          <p className="text-gray-600">Investment</p>
+                          <p className="font-medium text-gray-900">${(rec.implementation_cost || rec.cost || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      
+                      {/* 3-Year vs 5-Year Comparison */}
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+                          <div>3-Year Savings: <span className="font-medium text-green-700">${(rec.three_year_savings || (rec.annual_savings || rec.savings || 0) * 3).toLocaleString()}</span></div>
+                          <div>5-Year Savings: <span className="font-medium text-green-700">${(rec.five_year_savings || (rec.annual_savings || rec.savings || 0) * 5).toLocaleString()}</span></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

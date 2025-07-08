@@ -111,6 +111,9 @@ def create_enhanced_simulation(company_id):
         # Analyze break-even
         break_even = enhanced_engine.analyze_break_even(projections)
         
+        # Generate smart recommendations with comprehensive metrics
+        smart_recommendations = enhanced_engine.generate_smart_recommendations(baseline, automation_levels)
+        
         # Prepare response data with proper structure for frontend
         total_annual_savings = sum([
             labor_opt['total_annual_savings'],
@@ -174,9 +177,17 @@ def create_enhanced_simulation(company_id):
                 'total_optimized_costs': baseline.cost_breakdown.total_costs() - total_annual_savings,
                 'total_savings': total_annual_savings,
                 'payback_months': break_even.get('break_even_month', 12),
-                'roi_percentage': break_even.get('final_roi_percentage', 0),
                 'confidence_score': _calculate_confidence_score(baseline, questionnaire_analysis)
-            }
+            },
+            'roi_metrics': break_even.get('roi_metrics', {
+                'total_investment': total_implementation_cost,
+                'annual_roi': 0,
+                'three_year_roi': 0,
+                'five_year_roi': 0,
+                'payback_months': 999,
+                'break_even_date': None
+            }),
+            'smart_recommendations': smart_recommendations
         }
         
         # Save simulation to database
@@ -315,9 +326,16 @@ def adjust_enhanced_simulation(simulation_id):
                     'total_annual_savings': total_annual_savings,
                     'total_implementation_cost': total_implementation,
                     'net_benefit_year_1': total_annual_savings - total_implementation,
-                    'overall_roi_year_1': ((total_annual_savings - total_implementation) / total_implementation * 100) if total_implementation > 0 else 0,
                     'monthly_savings': total_annual_savings / 12,
                     'break_even_month': break_even['break_even_month']
+                },
+                'roi_metrics': {
+                    'total_investment': total_implementation,
+                    'annual_roi': ((total_annual_savings - total_implementation) / total_implementation * 100) if total_implementation > 0 else 0,
+                    'three_year_roi': (((total_annual_savings * 3) - total_implementation) / total_implementation * 100) if total_implementation > 0 else 0,
+                    'five_year_roi': (((total_annual_savings * 5) - total_implementation) / total_implementation * 100) if total_implementation > 0 else 0,
+                    'payback_months': break_even['break_even_month'] if break_even['break_even_month'] else 999,
+                    'break_even_date': None  # Will be calculated in break_even analysis
                 },
                 'projections': [
                     {

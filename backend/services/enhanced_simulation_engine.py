@@ -216,29 +216,29 @@ class EnhancedSimulationEngine:
     """
     
     def __init__(self):
-        # Manufacturing-specific optimization factors
+        # Manufacturing-specific optimization factors - realistic ranges
         self.labor_optimization_factors = {
-            'productivity_gain': 0.20,  # 20% productivity improvement
-            'error_reduction': 0.35,  # 35% reduction in human errors
-            'overtime_reduction': 0.40,  # 40% reduction in overtime
-            'setup_time_reduction': 0.25,  # 25% faster setup
+            'productivity_gain': 0.25,  # 25% productivity improvement
+            'error_reduction': 0.30,  # 30% reduction in human errors
+            'overtime_reduction': 0.35,  # 35% reduction in overtime
+            'setup_time_reduction': 0.20,  # 20% faster setup
             'implementation_months': 4,
             'ramp_up_months': 2
         }
         
         self.quality_optimization_factors = {
-            'defect_reduction': 0.60,  # 60% reduction in defects
-            'first_pass_yield_improvement': 0.15,  # 15% improvement
-            'rework_reduction': 0.70,  # 70% reduction in rework
-            'scrap_reduction': 0.50,  # 50% reduction in scrap
+            'defect_reduction': 0.50,  # 50% reduction in defects (realistic)
+            'first_pass_yield_improvement': 0.10,  # 10% improvement
+            'rework_reduction': 0.60,  # 60% reduction in rework  
+            'scrap_reduction': 0.40,  # 40% reduction in scrap
             'implementation_months': 6,
             'ramp_up_months': 4
         }
         
         self.inventory_optimization_factors = {
-            'turnover_improvement': 0.30,  # 30% faster turnover
-            'safety_stock_reduction': 0.25,  # 25% less safety stock
-            'obsolescence_reduction': 0.40,  # 40% less obsolescence
+            'turnover_improvement': 0.20,  # 20% faster turnover (realistic)
+            'safety_stock_reduction': 0.15,  # 15% less safety stock
+            'obsolescence_reduction': 0.25,  # 25% less obsolescence
             'carrying_cost_reduction': 0.20,  # 20% lower carrying costs
             'implementation_months': 3,
             'ramp_up_months': 2
@@ -356,15 +356,15 @@ class EnhancedSimulationEngine:
             # Adjust savings based on company size and current automation level
             if baseline.employee_count > 200:  # Large company
                 direct_labor_savings *= 1.15  # 15% bonus for economies of scale
-                implementation_cost_multiplier = 0.025  # Lower per-revenue cost
+                implementation_cost_multiplier = 0.015  # Lower per-revenue cost
             elif baseline.employee_count < 25:  # Small company  
                 direct_labor_savings *= 0.85  # 15% reduction for small scale
-                implementation_cost_multiplier = 0.04  # Higher per-revenue cost
+                implementation_cost_multiplier = 0.025  # Higher per-revenue cost
             else:  # Medium company
-                implementation_cost_multiplier = 0.03
+                implementation_cost_multiplier = 0.02  # Reduced cost
             
-            # Training and reskilling costs - vary by company size
-            base_training_cost = 1500 if baseline.employee_count < 50 else 2000
+            # Training and reskilling costs - vary by company size (reduced costs)
+            base_training_cost = 800 if baseline.employee_count < 50 else 1200
             training_cost = baseline.employee_count * base_training_cost * automation_level
             
             # Implementation costs - scale with revenue and automation level
@@ -419,18 +419,18 @@ class EnhancedSimulationEngine:
                 # Higher volumes = more savings from quality improvements
                 rework_savings *= 1.2
                 scrap_savings *= 1.2
-                quality_system_cost_multiplier = 0.015  # Economies of scale
+                quality_system_cost_multiplier = 0.008  # Economies of scale
             elif baseline.production_volume < 100000:  # Low volume
                 # Lower volumes = less dramatic savings
                 rework_savings *= 0.8
                 scrap_savings *= 0.8
-                quality_system_cost_multiplier = 0.025  # Higher per-revenue cost
+                quality_system_cost_multiplier = 0.015  # Higher per-revenue cost
             else:
-                quality_system_cost_multiplier = 0.02
+                quality_system_cost_multiplier = 0.012  # Reduced cost
             
             # Implementation costs for quality systems
             quality_system_cost = baseline.revenue * quality_system_cost_multiplier * automation_level
-            training_cost = baseline.employee_count * 1200 * automation_level  # Reduced base cost
+            training_cost = baseline.employee_count * 600 * automation_level  # Reduced base cost
             
             total_annual_savings = rework_savings + scrap_savings + inspection_savings + warranty_savings
             net_savings_year_1 = total_annual_savings - quality_system_cost - training_cost
@@ -481,9 +481,9 @@ class EnhancedSimulationEngine:
             working_capital_freed = inventory_value * turnover_improvement
             working_capital_benefit = working_capital_freed * 0.08  # 8% cost of capital
             
-            # Implementation costs
-            system_cost = baseline.revenue * 0.015 * automation_level  # 1.5% of revenue
-            training_cost = baseline.employee_count * 1000 * automation_level  # $1k per employee
+            # Implementation costs (reduced)
+            system_cost = baseline.revenue * 0.008 * automation_level  # 0.8% of revenue
+            training_cost = baseline.employee_count * 500 * automation_level  # $500 per employee
             
             total_annual_savings = carrying_cost_savings + storage_savings + obsolescence_savings + working_capital_benefit
             net_savings_year_1 = total_annual_savings - system_cost - training_cost
@@ -530,9 +530,9 @@ class EnhancedSimulationEngine:
             productivity_savings = baseline.cost_breakdown.agent_salaries * productivity_gain
             system_efficiency_savings = baseline.cost_breakdown.system_costs * cost_reduction
             
-            # Implementation costs
-            automation_platform_cost = baseline.revenue * 0.01 * automation_level  # 1% of revenue
-            setup_cost = 50000 * automation_level  # Base setup cost
+            # Implementation costs (reduced)
+            automation_platform_cost = baseline.revenue * 0.005 * automation_level  # 0.5% of revenue
+            setup_cost = 15000 * automation_level  # Reduced base setup cost
             
             total_annual_savings = agent_cost_savings + productivity_savings + system_efficiency_savings
             net_savings_year_1 = total_annual_savings - automation_platform_cost - setup_cost
@@ -613,8 +613,10 @@ class EnhancedSimulationEngine:
                 cumulative_cash_flow += monthly_cash_flow
                 cumulative_savings += total_monthly_savings
                 
-                # Calculate ROI to date
+                # Calculate corrected ROI to date
                 total_invested = total_implementation_cost
+                # ROI calculation: (cumulative_savings - total_investment) / total_investment * 100
+                # This should be negative early on and become positive after break-even
                 roi_to_date = (cumulative_savings - total_invested) / total_invested * 100 if total_invested > 0 else 0
                 
                 projection = MonthlyProjection(
@@ -647,13 +649,13 @@ class EnhancedSimulationEngine:
     
     def analyze_break_even(self, projections: List[MonthlyProjection]) -> Dict[str, Any]:
         """
-        Analyze break-even points and investment recovery timeline.
+        Analyze break-even points and investment recovery timeline with comprehensive ROI metrics.
         
         Args:
             projections: List of monthly projections
             
         Returns:
-            Dictionary with break-even analysis
+            Dictionary with break-even analysis and ROI metrics
         """
         try:
             break_even_month = None
@@ -672,20 +674,63 @@ class EnhancedSimulationEngine:
             final_projection = projections[-1] if projections else None
             
             if final_projection:
-                final_roi = final_projection.roi_to_date
                 total_savings = sum(p.total_savings for p in projections)
                 net_benefit = total_savings - total_investment
+                
+                # Calculate corrected ROI metrics
+                annual_roi = 0
+                three_year_roi = 0
+                five_year_roi = 0
+                
+                if total_investment > 0:
+                    # Annual ROI (12 months savings vs total investment)
+                    annual_savings = sum(p.total_savings for p in projections[:12]) if len(projections) >= 12 else total_savings
+                    annual_roi = ((annual_savings - total_investment) / total_investment) * 100
+                    
+                    # 3-year ROI (36 months or available projections)
+                    three_year_months = min(36, len(projections))
+                    three_year_savings = sum(p.total_savings for p in projections[:three_year_months])
+                    three_year_roi = ((three_year_savings - total_investment) / total_investment) * 100
+                    
+                    # 5-year ROI (extrapolate if needed)
+                    if len(projections) >= 60:
+                        five_year_savings = sum(p.total_savings for p in projections[:60])
+                    else:
+                        # Use the average monthly savings from available data to extrapolate
+                        if len(projections) >= 12:
+                            avg_monthly_savings = annual_savings / 12
+                            five_year_savings = avg_monthly_savings * 60
+                        else:
+                            # If less than 12 months, extrapolate from available data
+                            avg_monthly_savings = total_savings / len(projections) if len(projections) > 0 else 0
+                            five_year_savings = avg_monthly_savings * 60
+                    
+                    five_year_roi = ((five_year_savings - total_investment) / total_investment) * 100
+                
+                # Calculate break-even date
+                break_even_date = None
+                if break_even_month:
+                    from datetime import datetime, timedelta
+                    start_date = datetime.now()
+                    break_even_date = (start_date + timedelta(days=30 * break_even_month)).strftime('%Y-%m-%d')
                 
                 return {
                     'break_even_month': break_even_month,
                     'total_investment': total_investment,
                     'total_savings': total_savings,
                     'net_benefit': net_benefit,
-                    'final_roi_percentage': final_roi,
                     'payback_achieved': break_even_month is not None,
                     'cumulative_cash_flow_final': final_projection.cumulative_cash_flow,
                     'average_monthly_savings': total_savings / len(projections),
-                    'investment_recovery_timeline': f"{break_even_month} months" if break_even_month else "Not achieved in projection period"
+                    'investment_recovery_timeline': f"{break_even_month} months" if break_even_month else "Not achieved in projection period",
+                    'roi_metrics': {
+                        'total_investment': total_investment,
+                        'annual_roi': annual_roi,
+                        'three_year_roi': three_year_roi,
+                        'five_year_roi': five_year_roi,
+                        'payback_months': break_even_month or len(projections),
+                        'break_even_date': break_even_date
+                    }
                 }
             else:
                 return {
@@ -693,9 +738,16 @@ class EnhancedSimulationEngine:
                     'total_investment': 0,
                     'total_savings': 0,
                     'net_benefit': 0,
-                    'final_roi_percentage': 0,
                     'payback_achieved': False,
-                    'error': 'No projections available'
+                    'error': 'No projections available',
+                    'roi_metrics': {
+                        'total_investment': 0,
+                        'annual_roi': 0,
+                        'three_year_roi': 0,
+                        'five_year_roi': 0,
+                        'payback_months': 999,
+                        'break_even_date': None
+                    }
                 }
                 
         except Exception as e:
@@ -866,3 +918,143 @@ class EnhancedSimulationEngine:
         else:
             # Full benefits after ramp-up
             return 1.2
+    
+    def generate_smart_recommendations(self, baseline: EnhancedBaselineModel, automation_levels: Dict[str, float]) -> List[Dict[str, Any]]:
+        """
+        Generate smart recommendations with comprehensive financial metrics and filtering.
+        
+        Args:
+            baseline: Current baseline model
+            automation_levels: Dict with automation levels for each area
+            
+        Returns:
+            List of recommendations with detailed financial metrics
+        """
+        try:
+            recommendations = []
+            
+            # Calculate all optimizations
+            labor_opt = self.calculate_labor_optimization(baseline, automation_levels.get('labor', 0.5))
+            quality_opt = self.calculate_quality_optimization(baseline, automation_levels.get('quality', 0.5))
+            inventory_opt = self.calculate_inventory_optimization(baseline, automation_levels.get('inventory', 0.5))
+            service_opt = self.calculate_service_automation(baseline, automation_levels.get('service', 0.5))
+            
+            # Define recommendation templates with realistic descriptions
+            rec_templates = [
+                {
+                    'title': 'Labor Automation & Productivity',
+                    'description': 'Implement AI-powered scheduling, automated data entry, and workflow optimization to reduce manual labor and increase productivity',
+                    'category': 'labor',
+                    'optimization': labor_opt,
+                    'base_priority': 1
+                },
+                {
+                    'title': 'Quality Control Automation',
+                    'description': 'Deploy automated inspection systems, quality monitoring sensors, and defect tracking to reduce rework and scrap costs',
+                    'category': 'quality',
+                    'optimization': quality_opt,
+                    'base_priority': 2
+                },
+                {
+                    'title': 'Inventory Management System',
+                    'description': 'Implement smart inventory tracking, automated reordering, and demand forecasting to optimize stock levels and reduce carrying costs',
+                    'category': 'inventory',
+                    'optimization': inventory_opt,
+                    'base_priority': 3
+                },
+                {
+                    'title': 'Customer Service Automation',
+                    'description': 'Deploy AI chatbots, automated order processing, and customer self-service portals to reduce service costs and improve efficiency',
+                    'category': 'service',
+                    'optimization': service_opt,
+                    'base_priority': 4
+                }
+            ]
+            
+            # Process each recommendation
+            for template in rec_templates:
+                opt = template['optimization']
+                annual_savings = opt['total_annual_savings']
+                total_cost = opt.get('implementation_cost', 0) + opt.get('training_cost', 0) + \
+                            opt.get('quality_system_cost', 0) + opt.get('system_cost', 0) + \
+                            opt.get('automation_platform_cost', 0) + opt.get('setup_cost', 0)
+                
+                # Calculate multi-year metrics
+                three_year_savings = annual_savings * 3
+                five_year_savings = annual_savings * 5
+                
+                # Calculate ROI
+                annual_roi = ((annual_savings - total_cost) / total_cost * 100) if total_cost > 0 else 0
+                three_year_roi = ((three_year_savings - total_cost) / total_cost * 100) if total_cost > 0 else 0
+                five_year_roi = ((five_year_savings - total_cost) / total_cost * 100) if total_cost > 0 else 0
+                
+                # Calculate payback period
+                payback_months = int((total_cost / annual_savings) * 12) if annual_savings > 0 else 999
+                
+                # Determine recommendation type
+                is_quick_win = payback_months <= 6 and total_cost <= 50000
+                
+                recommendation = {
+                    'title': template['title'],
+                    'description': template['description'],
+                    'category': template['category'],
+                    'type': 'quick_win' if is_quick_win else 'standard',
+                    'annual_savings': annual_savings,
+                    'three_year_savings': three_year_savings,
+                    'five_year_savings': five_year_savings,
+                    'implementation_cost': total_cost,
+                    'annual_roi': annual_roi,
+                    'three_year_roi': three_year_roi,
+                    'five_year_roi': five_year_roi,
+                    'payback_months': payback_months,
+                    'priority': template['base_priority'],
+                    'cost_breakdown': self._get_cost_breakdown(template['category'], opt),
+                    'confidence': 0.85 if is_quick_win else 0.75
+                }
+                
+                # Filter: Only include recommendations with payback <= 36 months
+                if payback_months <= 36:
+                    recommendations.append(recommendation)
+            
+            # Sort by 3-year ROI (descending)
+            recommendations.sort(key=lambda x: x['three_year_roi'], reverse=True)
+            
+            # Re-assign priority based on ROI ranking
+            for i, rec in enumerate(recommendations):
+                rec['priority'] = i + 1
+            
+            logger.info(f"Generated {len(recommendations)} smart recommendations")
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Smart recommendation generation failed: {e}")
+            return []
+    
+    def _get_cost_breakdown(self, category: str, optimization: Dict[str, float]) -> Dict[str, float]:
+        """Get detailed cost breakdown for recommendation category."""
+        if category == 'labor':
+            return {
+                'software_automation_tools': optimization.get('implementation_cost', 0) * 0.6,
+                'training_and_change_management': optimization.get('training_cost', 0),
+                'integration_services': optimization.get('implementation_cost', 0) * 0.4
+            }
+        elif category == 'quality':
+            return {
+                'quality_management_software': optimization.get('quality_system_cost', 0) * 0.7,
+                'training_and_certification': optimization.get('training_cost', 0),
+                'sensors_and_equipment': optimization.get('quality_system_cost', 0) * 0.3
+            }
+        elif category == 'inventory':
+            return {
+                'inventory_management_system': optimization.get('system_cost', 0) * 0.8,
+                'training_and_setup': optimization.get('training_cost', 0),
+                'barcode_rfid_equipment': optimization.get('system_cost', 0) * 0.2
+            }
+        elif category == 'service':
+            return {
+                'automation_platform_license': optimization.get('automation_platform_cost', 0),
+                'implementation_and_setup': optimization.get('setup_cost', 0) * 0.7,
+                'training_and_support': optimization.get('setup_cost', 0) * 0.3
+            }
+        else:
+            return {'implementation': optimization.get('implementation_cost', 0)}
