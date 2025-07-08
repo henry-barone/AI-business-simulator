@@ -9,6 +9,7 @@ import FileUpload from '@/components/FileUpload';
 import DynamicQuestionnaire from '@/components/DynamicQuestionnaire';
 import SimulationDashboard from '@/components/SimulationDashboard';
 import AdjustmentSliders from '@/components/AdjustmentSliders';
+import PDFReportGenerator from '@/components/PDFReportGenerator';
 
 type SimulationStep = 'landing' | 'setup' | 'upload' | 'questionnaire' | 'processing' | 'results';
 
@@ -27,6 +28,7 @@ const BusinessSimulation = () => {
   const [currentStep, setCurrentStep] = useState<SimulationStep>('landing');
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [simulationData, setSimulationData] = useState<SimulationData | null>(null);
+  const [fullReportData, setFullReportData] = useState<any>(null);
 
   const handleCompanySetup = (data: CompanyData) => {
     setCompanyData(data);
@@ -203,7 +205,11 @@ const BusinessSimulation = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <SimulationDashboard companyId={companyData?.id || ''} />
+                <SimulationDashboard 
+                  companyId={companyData?.id || ''} 
+                  companyName={companyData?.name}
+                  onDataLoaded={setFullReportData}
+                />
               </div>
               <div>
                 <AdjustmentSliders
@@ -223,10 +229,16 @@ const BusinessSimulation = () => {
                     <Calendar className="w-4 h-4" />
                     Book Consultation
                   </Button>
-                  <Button variant="outline" className="border-purple-600 text-purple-600 hover:bg-purple-50 flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Download Report
-                  </Button>
+                  {fullReportData && (
+                    <PDFReportGenerator
+                      data={fullReportData}
+                      companyName={companyData?.name || 'Unknown Company'}
+                      onGenerate={() => console.log('Generating full report PDF...')}
+                      buttonText="Download Report"
+                      buttonVariant="outline"
+                      buttonClassName="border-purple-600 text-purple-600 hover:bg-purple-50"
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

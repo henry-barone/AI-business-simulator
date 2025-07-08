@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, DollarSign, Calendar, Target, CheckCircle, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { API_BASE_URL } from '@/lib/api';
+import PDFReportGenerator from '@/components/PDFReportGenerator';
 
 interface SimulationData {
   baseline: {
@@ -48,9 +49,11 @@ interface SimulationData {
 
 interface DashboardProps {
   companyId: string;
+  companyName?: string;
+  onDataLoaded?: (data: SimulationData) => void;
 }
 
-const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
+const SimulationDashboard: React.FC<DashboardProps> = ({ companyId, companyName, onDataLoaded }) => {
   const [data, setData] = useState<SimulationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [confidenceScore] = useState(87); // Mock confidence score
@@ -188,6 +191,7 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
         console.log('Enhanced simulation data:', enhancedData);
         console.log('Transformed data:', transformedData);
         setData(transformedData);
+        onDataLoaded?.(transformedData);
       } else {
         // Fallback to regular simulation endpoint
         response = await fetch(`${API_BASE_URL}/companies/${companyId}/simulation`);
@@ -196,6 +200,7 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
         }
         const result = await response.json();
         setData(result.data.simulation);
+        onDataLoaded?.(result.data.simulation);
       }
     } catch (error) {
       console.error('Error fetching simulation data:', error);

@@ -25,19 +25,30 @@ def create_enhanced_simulation(company_id):
         if not company:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         
-        # Get latest P&L data
+        # Get latest P&L data or use default demo data
         latest_pl = PLStatement.query.filter_by(company_id=company_id).order_by(PLStatement.uploaded_at.desc()).first()
-        if not latest_pl:
-            return jsonify({'success': False, 'error': 'No P&L data found for company'}), 400
+        
+        if latest_pl:
+            # Use actual P&L data
+            financial_data = {
+                'revenue': float(latest_pl.revenue) if latest_pl.revenue else 1000000,
+                'cogs': float(latest_pl.cogs) if latest_pl.cogs else 400000,
+                'labor_costs': float(latest_pl.labor_costs) if latest_pl.labor_costs else 300000,
+                'overhead_costs': float(latest_pl.overhead_costs) if latest_pl.overhead_costs else 200000
+            }
+        else:
+            # Use default demo data for companies without P&L
+            logger.info(f"No P&L data found for company {company_id}, using default demo data")
+            financial_data = {
+                'revenue': 1000000,  # $1M revenue
+                'cogs': 400000,      # $400K COGS (40%)
+                'labor_costs': 300000,  # $300K labor (30%)
+                'overhead_costs': 200000  # $200K overhead (20%)
+            }
         
         # Build company data for enhanced simulation
         company_data = {
-            'financial_data': {
-                'revenue': float(latest_pl.revenue) if latest_pl.revenue else 0,
-                'cogs': float(latest_pl.cogs) if latest_pl.cogs else 0,
-                'labor_costs': float(latest_pl.labor_costs) if latest_pl.labor_costs else 0,
-                'overhead_costs': float(latest_pl.overhead_costs) if latest_pl.overhead_costs else 0
-            },
+            'financial_data': financial_data,
             'company_profile': {
                 'industry': company.industry,
                 'production_volume': data.get('production_volume', '1000-10000 units/day'),

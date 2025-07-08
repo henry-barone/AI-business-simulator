@@ -20,6 +20,8 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    # Use SQLite for development if PostgreSQL is not available
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///ai_business_sim.db'
     # More permissive CORS for development
     CORS_ORIGINS = ['*']  # Allow all origins in development
 
