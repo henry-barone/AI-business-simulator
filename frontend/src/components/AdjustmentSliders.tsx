@@ -17,7 +17,7 @@ interface SliderValues {
   laborAutomation: number;
   qualityAutomation: number;
   inventoryAutomation: number;
-  implementationTimeline: number;
+  serviceAutomation: number;
 }
 
 const AdjustmentSliders: React.FC<SlidersProps> = ({ simulationId, onUpdate }) => {
@@ -25,7 +25,7 @@ const AdjustmentSliders: React.FC<SlidersProps> = ({ simulationId, onUpdate }) =
     laborAutomation: 50,
     qualityAutomation: 30,
     inventoryAutomation: 40,
-    implementationTimeline: 6,
+    serviceAutomation: 30,
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
@@ -34,12 +34,17 @@ const AdjustmentSliders: React.FC<SlidersProps> = ({ simulationId, onUpdate }) =
     debounce(async (newValues: SliderValues) => {
       setIsUpdating(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/simulations/${simulationId}/adjust`, {
+        const response = await fetch(`${API_BASE_URL}/enhanced-simulations/${simulationId}/adjust`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(newValues),
+          body: JSON.stringify({
+            labor_automation: newValues.laborAutomation,
+            quality_automation: newValues.qualityAutomation,
+            inventory_automation: newValues.inventoryAutomation,
+            service_automation: newValues.serviceAutomation
+          }),
         });
 
         if (!response.ok) {
@@ -47,7 +52,7 @@ const AdjustmentSliders: React.FC<SlidersProps> = ({ simulationId, onUpdate }) =
         }
 
         const data = await response.json();
-        onUpdate(data.data);
+        onUpdate(data.results);
       } catch (error) {
         toast({
           title: "Update failed",
@@ -101,13 +106,13 @@ const AdjustmentSliders: React.FC<SlidersProps> = ({ simulationId, onUpdate }) =
       unit: '%'
     },
     {
-      key: 'implementationTimeline' as keyof SliderValues,
-      label: 'Implementation Timeline',
-      tooltip: 'Number of months to fully implement the automation solutions',
-      min: 3,
-      max: 12,
-      step: 1,
-      unit: ' months'
+      key: 'serviceAutomation' as keyof SliderValues,
+      label: 'Customer Service Automation',
+      tooltip: 'Percentage of customer service processes that can be automated through AI chatbots and automated systems',
+      min: 0,
+      max: 100,
+      step: 5,
+      unit: '%'
     }
   ];
 

@@ -8,6 +8,18 @@ from models.company import Company
 from models.simulation import PLStatement
 from services.pl_analyzer import PLAnalyzer
 
+# Import new utilities but make them optional for backward compatibility
+try:
+    from services.auth_service import jwt_required, rate_limit, optional_jwt
+    from utils.api_response import (
+        success_response, error_response, validation_error_response, 
+        not_found_response, internal_error_response
+    )
+    from utils.validators import validate_financial_data, sanitize_string
+    ENHANCED_FEATURES = True
+except ImportError:
+    ENHANCED_FEATURES = False
+
 companies_bp = Blueprint('companies', __name__)
 
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls', 'pdf'}
@@ -15,9 +27,10 @@ ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls', 'pdf'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 @companies_bp.route('', methods=['POST'])
 def create_company():
-    """Create a new company"""
+    """Create a new company with backward compatibility."""
     try:
         data = request.get_json()
         
@@ -30,47 +43,93 @@ def create_company():
         if not name:
             return jsonify({'error': 'Company name is required'}), 400
         
-        company = Company(name=name, industry=industry)
+        # Sanitize input if enhanced features available
+        if ENHANCED_FEATURES:
+            name = sanitize_string(name, 100)
         
-        db.session.add(company)
-        db.session.commit()
+        # Check for duplicate company names and handle by adding timestamp
+        try:
+            existing_company = Company.query.filter_by(name=name).first()
+            if existing_company:
+                # Generate unique name by appending timestamp
+                from datetime import datetime
+                timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+                name = f"{name}_{timestamp}"
+                current_app.logger.info(f"Duplicate company name detected, using unique name: {name}")
+        except Exception as query_error:
+            current_app.logger.error(f"Database query error: {query_error}")
+            return jsonify({'error': 'Database query failed', 'details': str(query_error)}), 500
+        
+        # Create company - only use fields that exist in the model
+        try:
+            company = Company(name=name, industry=industry)
+            db.session.add(company)
+            db.session.commit()
+        except Exception as db_error:
+            db.session.rollback()
+            current_app.logger.error(f"Database error: {db_error}")
+            raise db_error
         
         current_app.logger.info(f"Company created: {name} (ID: {company.id})")
         
-        return jsonify({
-            'data': {
-                'id': str(company.id),
-                'name': company.name,
-                'industry': company.industry,
-                'created_at': company.created_at.isoformat() if company.created_at else None
-            }
-        }), 201
+        # Prepare response data using enhanced format if available
+        if ENHANCED_FEATURES:
+            return success_response(
+                data={
+                    'id': company.id,
+                    'name': company.name,
+                    'industry': company.industry,
+                    'created_at': company.created_at.isoformat() if company.created_at else None
+                },
+                message="Company created successfully",
+                status_code=201
+            )
+        else:
+            # Legacy response format
+            return jsonify({
+                'data': {
+                    'id': str(company.id),
+                    'name': company.name,
+                    'industry': company.industry,
+                    'created_at': company.created_at.isoformat() if company.created_at else None
+                }
+            }), 201
         
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Company creation error: {e}")
-        return jsonify({'error': 'Failed to create company'}), 500
+        # Always use basic JSON response for errors to avoid secondary issues
+        return jsonify({'error': 'Failed to create company', 'details': str(e)}), 500
 
 @companies_bp.route('/<int:company_id>', methods=['GET'])
 def get_company(company_id):
-    """Get company details"""
+    """Get company details with backward compatibility."""
     try:
         company = Company.query.get(company_id)
         if not company:
-            return jsonify({'error': 'Company not found'}), 404
+            if ENHANCED_FEATURES:
+                return not_found_response("Company")
+            else:
+                return jsonify({'error': 'Company not found'}), 404
         
-        return jsonify({
-            'data': {
-                'id': company.id,
-                'name': company.name,
-                'industry': company.industry,
-                'created_at': company.created_at.isoformat() if company.created_at else None
-            }
-        }), 200
+        response_data = {
+            'id': company.id,
+            'name': company.name,
+            'industry': company.industry,
+            'created_at': company.created_at.isoformat() if company.created_at else None
+        }
+        
+        if ENHANCED_FEATURES:
+            return success_response(data=response_data)
+        else:
+            return jsonify({'data': response_data}), 200
         
     except Exception as e:
         current_app.logger.error(f"Get company error: {e}")
-        return jsonify({'error': 'Failed to retrieve company'}), 500
+        if ENHANCED_FEATURES:
+            return internal_error_response("Failed to retrieve company")
+        else:
+            return jsonify({'error': 'Failed to retrieve company'}), 500
 
 @companies_bp.route('/<int:company_id>/upload-pl', methods=['POST'])
 def upload_pl_for_company(company_id):

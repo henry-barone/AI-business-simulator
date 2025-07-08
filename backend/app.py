@@ -23,11 +23,12 @@ def create_app(config_name=None):
     db.init_app(app)
     migrate = Migrate(app, db)
     
-    # Configure CORS for Lovable.dev
+    # Configure CORS for development and production
     CORS(app, 
-         origins=app.config['CORS_ORIGINS'],
-         allow_headers=['Content-Type', 'Authorization'],
-         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+         origins=app.config.get('CORS_ORIGINS', ['*']),
+         allow_headers=['Content-Type', 'Authorization', 'Origin', 'Accept'],
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+         supports_credentials=True)
     
     # Setup logging
     setup_logging(app)
@@ -42,6 +43,7 @@ def create_app(config_name=None):
     from routes.simulation import simulation_bp
     from routes.recommendations import recommendations_bp
     from routes.companies import companies_bp
+    from routes.enhanced_simulation import enhanced_simulation_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
@@ -49,6 +51,7 @@ def create_app(config_name=None):
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
     app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
     app.register_blueprint(companies_bp, url_prefix='/api/companies')
+    app.register_blueprint(enhanced_simulation_bp)
     
     # Health check endpoint
     @app.route('/health')
@@ -136,4 +139,5 @@ def register_error_handlers(app):
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Use port 5001 to avoid conflict with macOS AirPlay (which uses 5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

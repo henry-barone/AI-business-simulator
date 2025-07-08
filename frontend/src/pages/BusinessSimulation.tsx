@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Download, Calendar } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 import CompanySetup from '@/components/CompanySetup';
 import FileUpload from '@/components/FileUpload';
 import DynamicQuestionnaire from '@/components/DynamicQuestionnaire';
@@ -17,10 +18,15 @@ interface CompanyData {
   industry: string;
 }
 
+interface SimulationData {
+  simulation_id?: number;
+  [key: string]: any;
+}
+
 const BusinessSimulation = () => {
   const [currentStep, setCurrentStep] = useState<SimulationStep>('landing');
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
-  const [simulationData, setSimulationData] = useState<any>(null);
+  const [simulationData, setSimulationData] = useState<SimulationData | null>(null);
 
   const handleCompanySetup = (data: CompanyData) => {
     setCompanyData(data);
@@ -31,12 +37,53 @@ const BusinessSimulation = () => {
     setCurrentStep('questionnaire');
   };
 
-  const handleQuestionnaireComplete = () => {
+  const handleQuestionnaireComplete = async () => {
     setCurrentStep('processing');
-    // Simulate processing time
-    setTimeout(() => {
-      setCurrentStep('results');
-    }, 3000);
+    
+    try {
+      // Create enhanced simulation after questionnaire completion
+      const response = await fetch(`${API_BASE_URL}/companies/${companyData?.id}/enhanced-simulation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          automation_levels: {
+            labor: 0.5,
+            quality: 0.5,
+            inventory: 0.5,
+            service: 0.5
+          },
+          projection_months: 24,
+          production_volume: "1000-10000 units/day",
+          employee_count: "51-200",
+          automation_level: "Some automated tools"
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Simulation created successfully:', data);
+        setSimulationData({ 
+          ...data.data, 
+          simulation_id: data.simulation_id 
+        });
+        setTimeout(() => {
+          setCurrentStep('results');
+        }, 2000);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to create simulation:', response.status, errorText);
+        alert('Failed to create simulation. Please try again.');
+        setCurrentStep('questionnaire');
+        return;
+      }
+    } catch (error) {
+      console.error('Error creating simulation:', error);
+      alert('Network error creating simulation. Please check your connection and try again.');
+      setCurrentStep('questionnaire');
+      return;
+    }
   };
 
   const handleSimulationUpdate = (data: any) => {
@@ -160,7 +207,7 @@ const BusinessSimulation = () => {
               </div>
               <div>
                 <AdjustmentSliders
-                  simulationId="simulation-id"
+                  simulationId={simulationData?.simulation_id?.toString() || "1"}
                   onUpdate={handleSimulationUpdate}
                 />
               </div>

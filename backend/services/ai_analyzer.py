@@ -124,7 +124,7 @@ class AIAnalyzer:
             return self._analyze_with_fallback(response_data)
     
     def _build_analysis_prompt(self, response_data: Dict[str, Any]) -> str:
-        """Build the analysis prompt for Claude."""
+        """Build the enhanced analysis prompt for Claude."""
         
         responses_text = "\n".join([
             f"Q: {r['question']}\nA: {r['answer']}\n"
@@ -137,7 +137,7 @@ class AIAnalyzer:
         ])
         
         prompt = f"""
-You are an expert business analyst specializing in manufacturing operations. Analyze the following questionnaire responses from a manufacturing company and provide insights.
+You are an expert manufacturing operations consultant and AI implementation specialist. Analyze this comprehensive 12-question business assessment from a manufacturing company to provide detailed, actionable insights for AI and automation implementation.
 
 ALL QUESTIONNAIRE RESPONSES:
 {responses_text}
@@ -145,35 +145,85 @@ ALL QUESTIONNAIRE RESPONSES:
 DETAILED TEXT RESPONSES:
 {text_responses_text}
 
-Please provide a structured analysis in the following JSON format:
+Please provide a comprehensive analysis in the following JSON format:
 
 {{
-    "company_type": "Brief description of the company type based on products/processes",
-    "industry": "Manufacturing industry category",
-    "size_category": "small/medium/large based on employees and volume",
+    "company_profile": {{
+        "company_type": "Detailed description of company type and products",
+        "industry_category": "Specific manufacturing industry (Metal Fabrication, Electronics, etc.)",
+        "size_category": "small/medium/large with reasoning",
+        "production_complexity": "low/medium/high based on volume and processes",
+        "current_maturity": "Manual/Basic/Intermediate/Advanced/Cutting-edge"
+    }},
+    "operational_assessment": {{
+        "production_volume_annual": "Estimated annual units based on daily volume",
+        "quality_loss_percentage": "Extracted from defects/rework question",
+        "automation_percentage": "Current automation level (0-100%)",
+        "customer_service_volume": "Weekly inquiries volume category",
+        "improvement_budget_range": "Budget category for investments"
+    }},
     "pain_points": [
-        "List of specific pain points extracted from responses",
-        "Focus on operational challenges mentioned"
+        "Specific operational challenges extracted from responses",
+        "Quality control issues identified",
+        "Production efficiency bottlenecks",
+        "Labor-related challenges",
+        "Supply chain/inventory issues",
+        "Customer service pain points"
     ],
-    "opportunities": [
-        "List of improvement opportunities based on pain points",
-        "Automation and efficiency suggestions"
-    ],
-    "automation_level": "current/low/medium/high based on responses",
-    "priority_areas": [
-        "Top 3-5 priority areas for improvement",
-        "Based on pain points and business impact"
-    ],
-    "confidence_score": 0.85
+    "automation_opportunities": {{
+        "labor_optimization": {{
+            "potential": "high/medium/low",
+            "specific_areas": ["List specific labor automation opportunities"],
+            "estimated_savings_percentage": "0-30% range"
+        }},
+        "quality_control": {{
+            "potential": "high/medium/low", 
+            "specific_areas": ["List quality automation opportunities"],
+            "estimated_defect_reduction": "0-80% range"
+        }},
+        "inventory_management": {{
+            "potential": "high/medium/low",
+            "specific_areas": ["List inventory optimization opportunities"],
+            "estimated_efficiency_gain": "0-50% range"
+        }},
+        "customer_service": {{
+            "potential": "high/medium/low",
+            "specific_areas": ["List service automation opportunities"],
+            "estimated_response_improvement": "0-70% range"
+        }}
+    }},
+    "implementation_strategy": {{
+        "priority_order": [
+            "Ranked list of automation areas by impact and feasibility",
+            "Consider budget, current maturity, and pain points"
+        ],
+        "quick_wins": ["Immediate improvements possible within 3 months"],
+        "medium_term": ["Improvements requiring 3-12 months"],
+        "long_term": ["Strategic improvements requiring 1+ years"],
+        "budget_allocation": {{
+            "percentage_for_labor": "0-40%",
+            "percentage_for_quality": "0-40%", 
+            "percentage_for_inventory": "0-30%",
+            "percentage_for_service": "0-20%"
+        }}
+    }},
+    "roi_projections": {{
+        "expected_payback_months": "6-36 months based on investments and savings",
+        "year_1_roi_percentage": "Estimated first year ROI",
+        "total_annual_savings_potential": "Dollar range or percentage of revenue",
+        "implementation_risk": "low/medium/high"
+    }},
+    "confidence_score": 0.90
 }}
 
 Focus on:
-1. Extracting specific operational pain points from free-text responses
-2. Identifying automation and efficiency opportunities
-3. Prioritizing areas based on business impact and feasibility
-4. Providing actionable insights for manufacturing improvement
+1. Extracting specific, quantifiable insights from each question
+2. Providing detailed automation potential assessments for each area
+3. Creating realistic implementation timelines based on budget and complexity
+4. Calculating evidence-based ROI projections
+5. Prioritizing recommendations based on business impact, feasibility, and budget
 
-Respond only with valid JSON.
+Analyze the responses comprehensively and provide actionable, data-driven recommendations. Respond only with valid JSON.
 """
         return prompt
     
@@ -192,66 +242,166 @@ Respond only with valid JSON.
             return self._get_default_analysis()
     
     def _analyze_with_fallback(self, response_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Fallback analysis when Claude API is not available."""
+        """Enhanced fallback analysis when Claude API is not available."""
         
-        # Extract basic company information
-        profile = response_data['company_profile']
+        # Extract detailed information from all 12 questions
+        responses = {r['question_id']: r['answer'] for r in response_data['responses']}
         
-        # Analyze text responses for keywords
+        # Analyze company profile
+        product_type = responses.get('q1', 'Other Manufacturing')
+        production_volume = responses.get('q2', 'Unknown')
+        employee_count = responses.get('q3', 'Unknown')
+        revenue_range = responses.get('q4', 'Unknown')
+        quality_control = responses.get('q6', 'Unknown')
+        quality_loss = responses.get('q7', 'Unknown')
+        inventory_mgmt = responses.get('q8', 'Unknown')
+        automation_level = responses.get('q9', 'Unknown')
+        service_volume = responses.get('q10', 'Unknown')
+        budget_range = responses.get('q11', 'Unknown')
+        
+        # Analyze text responses for pain points
         pain_points = []
-        opportunities = []
+        opportunities = {}
         
         for text_resp in response_data['text_responses']:
             answer = text_resp['answer'].lower()
             
-            # Extract pain points using keyword matching
-            pain_keywords = [
-                'challenge', 'problem', 'issue', 'difficult', 'slow', 'manual',
-                'inefficient', 'costly', 'time-consuming', 'error', 'delay',
-                'bottleneck', 'shortage', 'quality', 'defect', 'waste'
-            ]
+            # Enhanced pain point extraction
+            pain_keywords = {
+                'quality': ['defect', 'quality', 'rework', 'scrap', 'inspection'],
+                'efficiency': ['slow', 'bottleneck', 'inefficient', 'delay', 'waste'],
+                'labor': ['manual', 'labor', 'worker', 'training', 'skill'],
+                'cost': ['expensive', 'cost', 'budget', 'profit', 'margin'],
+                'inventory': ['inventory', 'stock', 'material', 'supply']
+            }
             
-            for keyword in pain_keywords:
-                if keyword in answer:
-                    pain_points.append(f"Issues related to {keyword} mentioned in response")
-                    break
-            
-            # Extract opportunities
-            if 'automat' in answer:
-                opportunities.append("Automation opportunities identified")
-            if 'efficienc' in answer:
-                opportunities.append("Efficiency improvement potential")
-            if 'quality' in answer:
-                opportunities.append("Quality control enhancement needed")
+            for category, keywords in pain_keywords.items():
+                for keyword in keywords:
+                    if keyword in answer:
+                        pain_points.append(f"{category.title()} challenges: {keyword} issues mentioned")
+                        break
         
-        # Determine size category
-        employee_count = profile.get('employee_count', '')
-        if '1-10' in employee_count:
+        # Determine size and complexity
+        if any(x in employee_count for x in ['1-10', '11-25']):
             size_category = 'small'
-        elif '200+' in employee_count:
+        elif any(x in employee_count for x in ['251-500', 'Over 500']):
             size_category = 'large'
         else:
             size_category = 'medium'
-        
-        # Determine automation level
-        automation_current = profile.get('automation_level', '').lower()
-        if 'fully manual' in automation_current:
-            automation_level = 'low'
-        elif 'highly automated' in automation_current or 'fully automated' in automation_current:
-            automation_level = 'high'
+            
+        # Determine production complexity
+        if 'Over 50,000' in production_volume or 'Over 500' in employee_count:
+            complexity = 'high'
+        elif any(x in production_volume for x in ['Under 100', '100-500']):
+            complexity = 'low'
         else:
-            automation_level = 'medium'
+            complexity = 'medium'
+            
+        # Analyze automation opportunities
+        labor_potential = 'high' if 'manual' in automation_level.lower() else 'medium'
+        quality_potential = 'high' if 'manual' in quality_control.lower() else 'medium'
+        inventory_potential = 'high' if 'manual' in inventory_mgmt.lower() else 'medium'
+        service_potential = 'medium' if any(x in service_volume for x in ['100-250', 'More than 250']) else 'low'
+        
+        # Estimate budget allocation
+        budget_amounts = {
+            'Under $25,000': 25000,
+            '$25,000 - $75,000': 50000,
+            '$75,000 - $200,000': 137500,
+            '$200,000 - $500,000': 350000,
+            '$500,000 - $1M': 750000,
+            '$1M - $5M': 3000000,
+            'Over $5M': 7500000
+        }
+        
+        estimated_budget = budget_amounts.get(budget_range, 200000)
         
         return {
-            'company_type': f"{profile.get('product_type', 'Manufacturing')} manufacturer",
-            'industry': 'Manufacturing',
-            'size_category': size_category,
-            'pain_points': pain_points or ['Manual processes', 'Operational inefficiencies'],
-            'opportunities': opportunities or ['Process automation', 'Efficiency improvements'],
-            'automation_level': automation_level,
-            'priority_areas': ['Process optimization', 'Quality control', 'Cost reduction'],
-            'confidence_score': 0.6
+            'company_profile': {
+                'company_type': f"{product_type} manufacturer",
+                'industry_category': product_type,
+                'size_category': size_category,
+                'production_complexity': complexity,
+                'current_maturity': 'Basic' if 'manual' in automation_level.lower() else 'Intermediate'
+            },
+            'operational_assessment': {
+                'production_volume_annual': self._estimate_annual_volume(production_volume),
+                'quality_loss_percentage': self._extract_quality_loss(quality_loss),
+                'automation_percentage': self._estimate_automation_percentage(automation_level),
+                'customer_service_volume': service_volume,
+                'improvement_budget_range': budget_range
+            },
+            'pain_points': pain_points or ['Manual processes requiring optimization', 'Operational efficiency improvements needed'],
+            'automation_opportunities': {
+                'labor_optimization': {
+                    'potential': labor_potential,
+                    'specific_areas': ['Manual task automation', 'Process optimization'],
+                    'estimated_savings_percentage': '15-25%'
+                },
+                'quality_control': {
+                    'potential': quality_potential,
+                    'specific_areas': ['Automated inspection', 'Quality monitoring'],
+                    'estimated_defect_reduction': '30-50%'
+                },
+                'inventory_management': {
+                    'potential': inventory_potential,
+                    'specific_areas': ['Inventory tracking', 'Demand forecasting'],
+                    'estimated_efficiency_gain': '20-35%'
+                },
+                'customer_service': {
+                    'potential': service_potential,
+                    'specific_areas': ['Customer inquiry automation', 'Response optimization'],
+                    'estimated_response_improvement': '40-60%'
+                }
+            },
+            'implementation_strategy': {
+                'priority_order': ['Labor optimization', 'Quality control', 'Inventory management', 'Customer service'],
+                'quick_wins': ['Basic automation tools', 'Process standardization'],
+                'medium_term': ['Automated quality systems', 'Inventory optimization'],
+                'long_term': ['Advanced AI integration', 'Full process automation'],
+                'budget_allocation': {
+                    'percentage_for_labor': '35%',
+                    'percentage_for_quality': '30%',
+                    'percentage_for_inventory': '25%',
+                    'percentage_for_service': '10%'
+                }
+            },
+            'roi_projections': {
+                'expected_payback_months': '12-18',
+                'year_1_roi_percentage': '150-200%',
+                'total_annual_savings_potential': f"${int(estimated_budget * 1.5):,} - ${int(estimated_budget * 2.5):,}",
+                'implementation_risk': 'medium'
+            },
+            'confidence_score': 0.75
         }
+    
+    def _estimate_annual_volume(self, daily_volume: str) -> str:
+        """Estimate annual production volume from daily volume."""
+        volume_map = {
+            'Under 100 units/day': '25,000 units/year',
+            '100-500 units/day': '75,000 units/year', 
+            '500-2,000 units/day': '375,000 units/year',
+            '2,000-10,000 units/day': '1.5M units/year',
+            '10,000-50,000 units/day': '7.5M units/year',
+            'Over 50,000 units/day': '15M+ units/year'
+        }
+        return volume_map.get(daily_volume, '250,000 units/year')
+    
+    def _extract_quality_loss(self, quality_loss: str) -> str:
+        """Extract quality loss percentage."""
+        return quality_loss if quality_loss != 'Unknown' else '10-20%'
+    
+    def _estimate_automation_percentage(self, automation_level: str) -> str:
+        """Estimate current automation percentage."""
+        automation_map = {
+            'Fully manual operations': '5%',
+            'Basic tools and equipment only': '15%',
+            'Some automated machinery': '30%',
+            'Moderate automation (30-50% of processes)': '40%',
+            'Highly automated (50-80% of processes)': '65%',
+            'Nearly fully automated (80%+ of processes)': '85%'
+        }
+        return automation_map.get(automation_level, '25%')
     
     def _get_default_analysis(self) -> Dict[str, Any]:
         """Get default analysis structure."""

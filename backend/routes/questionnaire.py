@@ -264,40 +264,90 @@ def get_next_question():
         company_id = data.get('companyId')
         previous_answers = data.get('previousAnswers', {})
         
-        # Create a simple dynamic questionnaire based on previous answers
+        # Enhanced 12-question comprehensive business assessment
         questions = [
             {
                 'id': 'q1',
-                'text': 'What is your primary business focus?',
+                'text': 'What type of products or services does your company primarily provide?',
                 'type': 'select',
-                'options': ['Manufacturing', 'Services', 'Retail', 'Technology'],
+                'options': ['Metal Parts & Components', 'Plastic/Polymer Products', 'Electronics & Technology', 'Textiles & Apparel', 'Food & Beverage', 'Chemical Products', 'Automotive Parts', 'Medical Devices', 'Construction Materials', 'Other Manufacturing'],
                 'required': True
             },
             {
                 'id': 'q2',
-                'text': 'How many employees does your company have?',
+                'text': 'What is your typical daily production volume?',
                 'type': 'select',
-                'options': ['1-10', '11-50', '51-200', '200+'],
+                'options': ['Under 100 units/day', '100-500 units/day', '500-2,000 units/day', '2,000-10,000 units/day', '10,000-50,000 units/day', 'Over 50,000 units/day'],
                 'required': True
             },
             {
                 'id': 'q3',
-                'text': 'What is your current annual revenue?',
+                'text': 'How many employees work in your manufacturing/production operations?',
                 'type': 'select',
-                'options': ['Under $1M', '$1M-$10M', '$10M-$50M', 'Over $50M'],
+                'options': ['1-10 employees', '11-25 employees', '26-50 employees', '51-100 employees', '101-250 employees', '251-500 employees', 'Over 500 employees'],
                 'required': True
             },
             {
                 'id': 'q4',
-                'text': 'What are your biggest operational challenges?',
-                'type': 'textarea',
+                'text': 'What is your company\'s annual revenue range?',
+                'type': 'select',
+                'options': ['Under $500K', '$500K - $2M', '$2M - $10M', '$10M - $50M', '$50M - $200M', 'Over $200M'],
                 'required': True
             },
             {
                 'id': 'q5',
-                'text': 'How would you describe your current level of automation?',
+                'text': 'What are your biggest operational challenges and pain points? (Please describe in detail)',
+                'type': 'textarea',
+                'placeholder': 'Describe specific challenges like quality issues, production bottlenecks, labor shortages, cost pressures, etc.',
+                'required': True
+            },
+            {
+                'id': 'q6',
+                'text': 'How do you currently handle quality control and inspection?',
                 'type': 'select',
-                'options': ['Mostly manual processes', 'Some automated tools', 'Moderate automation', 'Highly automated'],
+                'options': ['100% manual inspection', 'Statistical sampling with manual checks', 'Some automated testing equipment', 'Advanced automated inspection systems', 'AI-powered quality control', 'No formal quality control process'],
+                'required': True
+            },
+            {
+                'id': 'q7',
+                'text': 'What percentage of your production time is lost to defects, rework, or equipment downtime?',
+                'type': 'select',
+                'options': ['Less than 5%', '5-10%', '10-20%', '20-30%', '30-50%', 'More than 50%', 'Not sure/No tracking'],
+                'required': True
+            },
+            {
+                'id': 'q8',
+                'text': 'How do you currently manage inventory, materials, and supply chain?',
+                'type': 'select',
+                'options': ['Manual tracking (spreadsheets/paper)', 'Basic inventory software', 'ERP system integration', 'Advanced supply chain management system', 'AI-powered demand forecasting', 'Just-in-time/lean approach'],
+                'required': True
+            },
+            {
+                'id': 'q9',
+                'text': 'What is your current level of automation in production processes?',
+                'type': 'select',
+                'options': ['Fully manual operations', 'Basic tools and equipment only', 'Some automated machinery', 'Moderate automation (30-50% of processes)', 'Highly automated (50-80% of processes)', 'Nearly fully automated (80%+ of processes)'],
+                'required': True
+            },
+            {
+                'id': 'q10',
+                'text': 'How many customer service inquiries, complaints, or support requests do you handle per week?',
+                'type': 'select',
+                'options': ['Fewer than 10', '10-25', '25-50', '50-100', '100-250', 'More than 250', 'No formal tracking'],
+                'required': True
+            },
+            {
+                'id': 'q11',
+                'text': 'What is your typical annual budget for operational improvements and technology investments?',
+                'type': 'select',
+                'options': ['Under $25,000', '$25,000 - $75,000', '$75,000 - $200,000', '$200,000 - $500,000', '$500,000 - $1M', '$1M - $5M', 'Over $5M'],
+                'required': True
+            },
+            {
+                'id': 'q12',
+                'text': 'Which specific areas would you most like to improve through automation or AI? What are your priorities and expected outcomes?',
+                'type': 'textarea',
+                'placeholder': 'Describe your automation priorities: labor efficiency, quality control, inventory management, customer service, predictive maintenance, etc. Include expected benefits.',
                 'required': True
             }
         ]

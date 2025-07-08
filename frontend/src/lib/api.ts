@@ -13,11 +13,22 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     ...options,
   };
 
-  const response = await fetch(url, defaultOptions);
-  
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-  }
+  console.log(`Making API request: ${options.method || 'GET'} ${url}`);
 
-  return response.json();
+  try {
+    const response = await fetch(url, defaultOptions);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API request failed: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`API request failed: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
+    }
+
+    const data = await response.json();
+    console.log('API response:', data);
+    return data;
+  } catch (error) {
+    console.error('API request error:', error);
+    throw error;
+  }
 };

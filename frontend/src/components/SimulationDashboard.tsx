@@ -57,14 +57,122 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
 
   const fetchSimulationData = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/companies/${companyId}/simulation`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch simulation data');
+      // First try enhanced simulation endpoint
+      let response = await fetch(`${API_BASE_URL}/companies/${companyId}/enhanced-simulation`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        // Transform enhanced simulation data to match dashboard format
+        const enhancedData = result.data;
+        
+        // Calculate current costs
+        const currentLaborCosts = (enhancedData.baseline.cost_breakdown.direct_labor_cost || 0) + 
+                                 (enhancedData.baseline.cost_breakdown.indirect_labor_cost || 0);
+        const currentCogs = enhancedData.baseline.cogs || 0;
+        const currentOverhead = enhancedData.baseline.overhead_costs || 0;
+        
+        // Calculate optimized costs (current costs minus savings)
+        const laborSavings = enhancedData.optimizations?.labor?.total_annual_savings || 0;
+        const qualitySavings = enhancedData.optimizations?.quality?.total_annual_savings || 0;
+        const inventorySavings = enhancedData.optimizations?.inventory?.total_annual_savings || 0;
+        const serviceSavings = enhancedData.optimizations?.service?.total_annual_savings || 0;
+        
+        const optimizedLaborCosts = Math.max(0, currentLaborCosts - laborSavings);
+        const optimizedCogs = Math.max(0, currentCogs - qualitySavings);
+        const optimizedOverhead = Math.max(0, currentOverhead - inventorySavings - serviceSavings);
+        
+        const transformedData = {
+          baseline: {
+            revenue: enhancedData.baseline.revenue || 0,
+            costs: {
+              labor: currentLaborCosts,
+              cogs: currentCogs,
+              overhead: currentOverhead
+            }
+          },
+          optimized: {
+            costs: {
+              labor: optimizedLaborCosts,
+              cogs: optimizedCogs,
+              overhead: optimizedOverhead
+            }
+          },
+          timeline_projections: (enhancedData.projections || []).map((p: any, index: number) => {
+            // Calculate cumulative savings (positive values) instead of cash flow
+            const monthlySavings = Math.max(0, p.total_savings || 0);
+            const cumulativeSavings = index === 0 ? monthlySavings : 
+              (enhancedData.projections.slice(0, index + 1).reduce((sum: number, proj: any) => 
+                sum + Math.max(0, proj.total_savings || 0), 0));
+            
+            return {
+              month: p.month || index + 1,
+              savings: monthlySavings,
+              cumulative: cumulativeSavings
+            };
+          }),
+          recommendations: [
+            {
+              type: "Labor Automation",
+              description: "Implement AI-powered labor optimization systems",
+              savings: laborSavings,
+              cost: (enhancedData.optimizations?.labor?.implementation_cost || 0) + 
+                    (enhancedData.optimizations?.labor?.training_cost || 0),
+              priority: 1
+            },
+            {
+              type: "Quality Control",
+              description: "Deploy automated quality assurance and inspection systems",
+              savings: qualitySavings,
+              cost: (enhancedData.optimizations?.quality?.quality_system_cost || 0) + 
+                    (enhancedData.optimizations?.quality?.training_cost || 0),
+              priority: 2
+            },
+            {
+              type: "Inventory Management",
+              description: "Optimize inventory with smart forecasting and automated tracking",
+              savings: inventorySavings,
+              cost: (enhancedData.optimizations?.inventory?.system_cost || 0) + 
+                    (enhancedData.optimizations?.inventory?.training_cost || 0),
+              priority: 3
+            },
+            {
+              type: "Customer Service",
+              description: "Automate customer service with AI-powered support systems",
+              savings: serviceSavings,
+              cost: (enhancedData.optimizations?.service?.automation_platform_cost || 0) + 
+                    (enhancedData.optimizations?.service?.setup_cost || 0),
+              priority: 4
+            }
+          ],
+          roi_metrics: {
+            total_investment: enhancedData.summary?.total_implementation_cost || 0,
+            payback_months: enhancedData.break_even_analysis?.break_even_month || 
+                           enhancedData.metrics?.payback_months || 12,
+            roi_percentage: enhancedData.break_even_analysis?.final_roi_percentage || 
+                           enhancedData.metrics?.roi_percentage || 0
+          },
+          summary_metrics: {
+            total_savings: enhancedData.summary?.total_annual_savings || 0,
+            confidence_score: enhancedData.metrics?.confidence_score || 85
+          }
+        };
+        
+        console.log('Enhanced simulation data:', enhancedData);
+        console.log('Transformed data:', transformedData);
+        setData(transformedData);
+      } else {
+        // Fallback to regular simulation endpoint
+        response = await fetch(`${API_BASE_URL}/companies/${companyId}/simulation`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch simulation data');
+        }
+        const result = await response.json();
+        setData(result.data.simulation);
       }
-      const result = await response.json();
-      setData(result.data.simulation);
     } catch (error) {
       console.error('Error fetching simulation data:', error);
+      console.error('Company ID:', companyId);
+      console.error('API Base URL:', API_BASE_URL);
     } finally {
       setLoading(false);
     }
@@ -100,7 +208,7 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
 
   const totalCurrentCosts = data.baseline.costs.labor + data.baseline.costs.cogs + data.baseline.costs.overhead;
   const totalOptimizedCosts = data.optimized.costs.labor + data.optimized.costs.cogs + data.optimized.costs.overhead;
-  const totalSavings = totalCurrentCosts - totalOptimizedCosts;
+  const totalSavings = data.summary_metrics?.total_savings || (totalCurrentCosts - totalOptimizedCosts);
 
   const costComparisonData = [
     {
@@ -121,7 +229,7 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
     { name: 'Labor', value: data.optimized.costs.labor, color: '#8B5CF6' },
     { name: 'COGS', value: data.optimized.costs.cogs, color: '#06B6D4' },
     { name: 'Overhead', value: data.optimized.costs.overhead, color: '#10B981' },
-  ];
+  ].filter(item => item.value > 0); // Only show non-zero values
 
   return (
     <div className="space-y-6">
@@ -169,7 +277,7 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
               <Target className="h-8 w-8 text-orange-600" />
               <div>
                 <p className="text-sm text-gray-600">Confidence Score</p>
-                <p className="text-2xl font-bold text-orange-600">{confidenceScore}%</p>
+                <p className="text-2xl font-bold text-orange-600">{data.summary_metrics?.confidence_score || confidenceScore}%</p>
               </div>
             </div>
           </CardContent>
@@ -202,17 +310,33 @@ const SimulationDashboard: React.FC<DashboardProps> = ({ companyId }) => {
         {/* Timeline Chart */}
         <Card className="professional-card">
           <CardHeader>
-            <CardTitle className="professional-heading">Projected Savings Timeline</CardTitle>
+            <CardTitle className="professional-heading">Cumulative Savings Over Time</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.timeline_projections}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-                  <Line type="monotone" dataKey="cumulative" stroke="#8B5CF6" strokeWidth={3} />
+                  <XAxis 
+                    dataKey="month" 
+                    label={{ value: 'Month', position: 'insideBottom', offset: -5 }}
+                  />
+                  <YAxis 
+                    label={{ value: 'Cumulative Savings ($)', angle: -90, position: 'insideLeft' }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Cumulative Savings']}
+                    labelFormatter={(label) => `Month ${label}`}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cumulative" 
+                    stroke="#8B5CF6" 
+                    strokeWidth={3}
+                    dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }}
+                    name="Cumulative Savings"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

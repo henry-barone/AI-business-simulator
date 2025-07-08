@@ -11,8 +11,8 @@ class Config:
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or 'uploads'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     
-    # CORS settings for Lovable.dev frontend
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'https://*.lovable.dev,https://lovable.dev,http://localhost:3000').split(',')
+    # CORS settings for development and production
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'https://*.lovable.dev,https://lovable.dev,http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173').split(',')
     
     # Logging
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
@@ -20,6 +20,8 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    # More permissive CORS for development
+    CORS_ORIGINS = ['*']  # Allow all origins in development
 
 class ProductionConfig(Config):
     DEBUG = False

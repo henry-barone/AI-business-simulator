@@ -228,17 +228,39 @@ class PLAnalyzer:
             return float(value)
         
         if isinstance(value, str):
-            # Check for unsupported suffixes before processing
-            value_lower = value.lower().strip()
-            if any(suffix in value_lower for suffix in ['m', 'k', 'b', 'million', 'thousand', 'billion']):
-                # Only reject if the suffix is at the end (not part of a word)
-                if re.search(r'\d+[mk]$|\d+\s*(million|thousand|billion)$', value_lower):
-                    return None
+            value_str = str(value).strip()
+            if not value_str:
+                return None
             
-            cleaned = re.sub(r'[^\d.-]', '', value.replace(',', ''))
-            if cleaned and cleaned not in ['-', '.']:
+            # Handle parentheses for negative numbers (accounting format)
+            is_negative = False
+            if value_str.startswith('(') and value_str.endswith(')'):
+                is_negative = True
+                value_str = value_str[1:-1]
+            
+            # Handle currency symbols and clean the string
+            value_str = re.sub(r'[$€£¥₹]', '', value_str)
+            value_str = value_str.replace(',', '').replace(' ', '').lower()
+            
+            # Handle K/M/B suffixes
+            multiplier = 1
+            if value_str.endswith('k') or 'thousand' in value_str:
+                multiplier = 1000
+                value_str = re.sub(r'k$|thousand', '', value_str)
+            elif value_str.endswith('m') or 'million' in value_str:
+                multiplier = 1000000
+                value_str = re.sub(r'm$|million', '', value_str)
+            elif value_str.endswith('b') or 'billion' in value_str:
+                multiplier = 1000000000
+                value_str = re.sub(r'b$|billion', '', value_str)
+            
+            # Extract the numeric part
+            numeric_match = re.search(r'[\d.-]+', value_str)
+            if numeric_match:
                 try:
-                    return float(cleaned)
+                    numeric_value = float(numeric_match.group())
+                    result = numeric_value * multiplier
+                    return -result if is_negative else result
                 except ValueError:
                     pass
         
