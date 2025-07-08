@@ -225,7 +225,13 @@ const BusinessSimulation = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button className="professional-button flex items-center gap-2">
+                  <Button 
+                    className="professional-button flex items-center gap-2"
+                    onClick={() => {
+                      console.log('Book Consultation clicked');
+                      window.open('https://cal.com/jochem-spaik/discovery', '_blank');
+                    }}
+                  >
                     <Calendar className="w-4 h-4" />
                     Book Consultation
                   </Button>
