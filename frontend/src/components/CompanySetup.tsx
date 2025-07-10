@@ -8,29 +8,16 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
 
 interface CompanySetupProps {
-  onComplete: (companyData: { id: string; name: string; industry: string; email: string; emailConsent: boolean }) => void;
+  onComplete: (companyData: { id: string; name: string; email: string; emailConsent: boolean }) => void;
 }
 
 const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
   const [companyName, setCompanyName] = useState('');
-  const [industry, setIndustry] = useState('');
   const [email, setEmail] = useState('');
   const [emailConsent, setEmailConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const industries = [
-    'Manufacturing',
-    'Retail',
-    'Technology',
-    'Healthcare',
-    'Financial Services',
-    'Automotive',
-    'Food & Beverage',
-    'Logistics & Transportation',
-    'Construction',
-    'Other'
-  ];
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,7 +27,7 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!companyName.trim() || !industry || !email.trim()) {
+    if (!companyName.trim() || !email.trim()) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields.",
@@ -64,7 +51,6 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
         method: 'POST',
         body: JSON.stringify({
           name: companyName.trim(),
-          industry: industry,
           email: email.trim(),
           emailConsent: emailConsent
         }),
@@ -73,7 +59,6 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
       onComplete({
         id: data.data.id,
         name: companyName.trim(),
-        industry: industry,
         email: email.trim(),
         emailConsent: emailConsent
       });
@@ -111,23 +96,6 @@ const CompanySetup: React.FC<CompanySetupProps> = ({ onComplete }) => {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="industry">Industry *</Label>
-            <select
-              id="industry"
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="">Select your industry</option>
-              {industries.map((ind) => (
-                <option key={ind} value={ind}>
-                  {ind}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address *</Label>

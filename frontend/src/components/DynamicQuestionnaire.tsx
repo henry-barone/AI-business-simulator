@@ -13,17 +13,20 @@ import { API_BASE_URL } from '@/lib/api';
 interface Question {
   id: string;
   text: string;
-  type: 'select' | 'radio' | 'textarea' | 'text';
+  type: 'select' | 'radio' | 'textarea' | 'text' | 'cost_breakdown';
   options?: string[];
   required: boolean;
+  placeholder?: string;
+  fields?: { name: string; label: string }[];
 }
 
 interface QuestionnaireProps {
   companyId: string;
   onComplete: () => void;
+  onQuestionAnswered?: (answers: Record<string, string>, questionCount: number) => void;
 }
 
-const DynamicQuestionnaire: React.FC<QuestionnaireProps> = ({ companyId, onComplete }) => {
+const DynamicQuestionnaire: React.FC<QuestionnaireProps> = ({ companyId, onComplete, onQuestionAnswered }) => {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -100,6 +103,11 @@ const DynamicQuestionnaire: React.FC<QuestionnaireProps> = ({ companyId, onCompl
         throw new Error('Failed to submit answer');
       }
 
+      // Notify parent component about the new answer
+      if (onQuestionAnswered) {
+        onQuestionAnswered(newAnswers, Object.keys(newAnswers).length);
+      }
+
       // Fetch next question
       await fetchNextQuestion();
     } catch (error) {
@@ -121,6 +129,30 @@ const DynamicQuestionnaire: React.FC<QuestionnaireProps> = ({ companyId, onCompl
       });
       return;
     }
+
+    // Special validation for cost breakdown question
+    if (currentQuestion?.type === 'cost_breakdown' && currentQuestion?.id === 'q11') {
+      try {
+        const costData = JSON.parse(answer);
+        const total = costData.labor + costData.materials + costData.overhead;
+        if (Math.abs(total - 100) > 0.1) {
+          toast({
+            title: "Invalid percentage",
+            description: "The three percentages must sum to 100%.",
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (e) {
+        toast({
+          title: "Invalid data",
+          description: "Please fill in all percentage fields.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     submitAnswer(answer);
   };
 
@@ -190,7 +222,7 @@ const DynamicQuestionnaire: React.FC<QuestionnaireProps> = ({ companyId, onCompl
               id="answer"
               value={currentAnswer}
               onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))}
-              placeholder="Enter your answer..."
+              placeholder={currentQuestion.placeholder || "Enter your answer..."}
               rows={4}
             />
           </div>
@@ -204,8 +236,50 @@ const DynamicQuestionnaire: React.FC<QuestionnaireProps> = ({ companyId, onCompl
               id="answer"
               value={currentAnswer}
               onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))}
-              placeholder="Enter your answer..."
+              placeholder={currentQuestion.placeholder || "Enter your answer..."}
             />
+          </div>
+        );
+
+      case 'cost_breakdown':
+        const costData = (() => {
+          try {
+            return currentAnswer ? JSON.parse(currentAnswer) : { labor: '', materials: '', overhead: '' };
+          } catch {
+            return { labor: '', materials: '', overhead: '' };
+          }
+        })();
+        
+        const updateCostData = (field: string, value: string) => {
+          const numValue = value === '' ? 0 : parseFloat(value) || 0;
+          const newData = { ...costData, [field]: numValue };
+          setAnswers(prev => ({ ...prev, [currentQuestion.id]: JSON.stringify(newData) }));
+        };
+
+        const total = (costData.labor || 0) + (costData.materials || 0) + (costData.overhead || 0);
+
+        return (
+          <div className="space-y-4">
+            <Label>{currentQuestion.text}</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {currentQuestion.fields?.map((field) => (
+                <div key={field.name} className="space-y-2">
+                  <Label htmlFor={field.name}>{field.label} %</Label>
+                  <Input
+                    id={field.name}
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={costData[field.name] || ''}
+                    onChange={(e) => updateCostData(field.name, e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className={`text-sm font-medium ${Math.abs(total - 100) < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
+              Total: {total.toFixed(1)}% {Math.abs(total - 100) < 0.1 ? '✓' : '(must equal 100%)'}
+            </div>
           </div>
         );
 

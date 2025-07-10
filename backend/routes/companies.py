@@ -38,7 +38,7 @@ def create_company():
             return jsonify({'error': 'No data provided'}), 400
         
         name = data.get('name')
-        industry = data.get('industry')
+        industry = data.get('industry', 'Manufacturing')  # Default to Manufacturing since Q1 answers this
         email = data.get('email')
         email_consent = data.get('emailConsent', False)
         

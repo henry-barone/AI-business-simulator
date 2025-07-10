@@ -1,98 +1,142 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Download, Calendar } from 'lucide-react';
+import { ArrowRight, Download, Calendar, RotateCcw } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import CompanySetup from '@/components/CompanySetup';
 import FileUpload from '@/components/FileUpload';
 import DynamicQuestionnaire from '@/components/DynamicQuestionnaire';
 import SimulationDashboard from '@/components/SimulationDashboard';
-import AdjustmentSliders from '@/components/AdjustmentSliders';
 import PDFReportGenerator from '@/components/PDFReportGenerator';
+import { businessSimulationState, type CompanyData } from '@/lib/businessSimulationState';
 
 type SimulationStep = 'landing' | 'setup' | 'upload' | 'questionnaire' | 'processing' | 'results';
-
-interface CompanyData {
-  id: string;
-  name: string;
-  industry: string;
-  email: string;
-  emailConsent: boolean;
-}
-
-interface SimulationData {
-  simulation_id?: number;
-  [key: string]: any;
-}
 
 const BusinessSimulation = () => {
   const [currentStep, setCurrentStep] = useState<SimulationStep>('landing');
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
-  const [simulationData, setSimulationData] = useState<SimulationData | null>(null);
   const [fullReportData, setFullReportData] = useState<any>(null);
+
+  // Initialize state from localStorage on component mount
+  useEffect(() => {
+    const savedState = businessSimulationState.getState();
+    
+    if (savedState.companyData) {
+      setCompanyData(savedState.companyData);
+    }
+    
+    if (savedState.fullReportData) {
+      setFullReportData(savedState.fullReportData);
+    }
+    
+    // Set the appropriate step based on saved state
+    const appropriateStep = businessSimulationState.getCurrentStep();
+    setCurrentStep(appropriateStep);
+  }, []);
 
   const handleCompanySetup = (data: CompanyData) => {
     setCompanyData(data);
+    businessSimulationState.updateCompanyData(data);
     setCurrentStep('upload');
   };
 
-  const handleUploadSuccess = (data: any) => {
+  const handleUploadSuccess = () => {
     setCurrentStep('questionnaire');
   };
 
-  const handleQuestionnaireComplete = async () => {
-    setCurrentStep('processing');
+  // Handle each questionnaire answer and update simulation
+  const handleQuestionAnswered = async (answers: Record<string, string>, questionCount: number) => {
+    // Save questionnaire progress
+    businessSimulationState.updateQuestionnaireData(answers, questionCount);
     
+    // Trigger simulation update every few questions or when significant answers are provided
+    if (questionCount >= 3 && questionCount % 3 === 0) { // Update every 3 questions
+      await updateSimulationWithCurrentAnswers(answers, questionCount);
+    }
+  };
+
+  // Function to update simulation based on current questionnaire answers
+  const updateSimulationWithCurrentAnswers = async (answers: Record<string, string>, questionCount: number) => {
+    if (!companyData?.id) return;
+
     try {
-      // Create enhanced simulation after questionnaire completion
-      const response = await fetch(`${API_BASE_URL}/companies/${companyData?.id}/enhanced-simulation`, {
+      // Extract key answers for simulation parameters
+      const employeeCount = answers['q3'] || '1-10';
+      const productionVolume = answers['q5'] || 'Under 100 units';
+      const automationLevel = answers['q8'] || 'Paper/Manual';
+
+      // Create enhanced simulation with questionnaire data
+      const response = await fetch(`${API_BASE_URL}/companies/${companyData.id}/enhanced-simulation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           automation_levels: {
-            labor: 0.5,
-            quality: 0.5,
-            inventory: 0.5,
-            service: 0.5
+            labor: questionCount >= 8 ? 0.3 : 0.1, // Increase automation suggestion as more questions answered
+            quality: questionCount >= 4 ? 0.4 : 0.2,
+            inventory: questionCount >= 9 ? 0.3 : 0.1,
+            service: 0.2
           },
           projection_months: 24,
-          production_volume: "1000-10000 units/day",
-          employee_count: "51-200",
-          automation_level: "Some automated tools"
+          production_volume: productionVolume,
+          employee_count: employeeCount,
+          automation_level: automationLevel,
+          questionnaire_progress: {
+            answers,
+            completion_percentage: (questionCount / 12) * 100
+          }
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Simulation created successfully:', data);
-        setSimulationData({ 
+        const newSimulationData = { 
           ...data.data, 
-          simulation_id: data.simulation_id 
-        });
-        setTimeout(() => {
-          setCurrentStep('results');
-        }, 2000);
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to create simulation:', response.status, errorText);
-        alert('Failed to create simulation. Please try again.');
-        setCurrentStep('questionnaire');
-        return;
+          simulation_id: data.simulation_id,
+          questionnaire_progress: questionCount 
+        };
+        
+        businessSimulationState.updateSimulationData(newSimulationData);
       }
     } catch (error) {
-      console.error('Error creating simulation:', error);
+      console.warn('Failed to update simulation with questionnaire answers:', error);
+    }
+  };
+
+  const handleQuestionnaireComplete = async () => {
+    setCurrentStep('processing');
+    
+    try {
+      // Get final questionnaire answers
+      const savedState = businessSimulationState.getState();
+      const answers = savedState.questionnaireData?.answers || {};
+      
+      // Trigger final simulation update with complete questionnaire data
+      await updateSimulationWithCurrentAnswers(answers, 12);
+      
+      // Mark questionnaire as completed with timestamp
+      businessSimulationState.updateQuestionnaireData(answers, 12);
+      
+      setTimeout(() => {
+        setCurrentStep('results');
+      }, 2000);
+    } catch (error) {
+      console.error('Error creating final simulation:', error);
       alert('Network error creating simulation. Please check your connection and try again.');
       setCurrentStep('questionnaire');
       return;
     }
   };
 
-  const handleSimulationUpdate = (data: any) => {
-    setSimulationData(data);
+  // Function to restart the questionnaire
+  const handleRestartQuestionnaire = () => {
+    businessSimulationState.clearQuestionnaireData();
+    setFullReportData(null);
+    setCurrentStep('questionnaire');
   };
+
 
   const renderStep = () => {
     switch (currentStep) {
@@ -168,6 +212,7 @@ const BusinessSimulation = () => {
             <DynamicQuestionnaire
               companyId={companyData?.id || ''}
               onComplete={handleQuestionnaireComplete}
+              onQuestionAnswered={handleQuestionAnswered}
             />
           </div>
         );
@@ -205,20 +250,12 @@ const BusinessSimulation = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <SimulationDashboard 
-                  companyId={companyData?.id || ''} 
-                  companyName={companyData?.name}
-                  onDataLoaded={setFullReportData}
-                />
-              </div>
-              <div>
-                <AdjustmentSliders
-                  simulationId={simulationData?.simulation_id?.toString() || "1"}
-                  onUpdate={handleSimulationUpdate}
-                />
-              </div>
+            <div className="w-full">
+              <SimulationDashboard 
+                companyId={companyData?.id || ''} 
+                companyName={companyData?.name}
+                onDataLoaded={setFullReportData}
+              />
             </div>
 
             <Card className="professional-card">
@@ -247,6 +284,14 @@ const BusinessSimulation = () => {
                       buttonClassName="border-purple-600 text-purple-600 hover:bg-purple-50"
                     />
                   )}
+                  <Button 
+                    variant="outline"
+                    className="flex items-center gap-2 border-orange-600 text-orange-600 hover:bg-orange-50"
+                    onClick={handleRestartQuestionnaire}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Retake Assessment
+                  </Button>
                 </div>
               </CardContent>
             </Card>

@@ -268,86 +268,90 @@ def get_next_question():
         questions = [
             {
                 'id': 'q1',
-                'text': 'What type of products or services does your company primarily provide?',
+                'text': 'What type of products do you manufacture?',
                 'type': 'select',
-                'options': ['Metal Parts & Components', 'Plastic/Polymer Products', 'Electronics & Technology', 'Textiles & Apparel', 'Food & Beverage', 'Chemical Products', 'Automotive Parts', 'Medical Devices', 'Construction Materials', 'Other Manufacturing'],
+                'options': ['Metal/Machined Parts', 'Plastic/Injection Molded Items', 'Electronics/Assemblies', 'Food & Beverage Products', 'Textiles/Apparel', 'Mixed/Other'],
                 'required': True
             },
             {
                 'id': 'q2',
-                'text': 'What is your typical daily production volume?',
+                'text': 'What is your primary production method?',
                 'type': 'select',
-                'options': ['Under 100 units/day', '100-500 units/day', '500-2,000 units/day', '2,000-10,000 units/day', '10,000-50,000 units/day', 'Over 50,000 units/day'],
+                'options': ['Make-to-order (custom/bespoke)', 'Make-to-stock (standard products)', 'Batch production', 'Continuous flow'],
                 'required': True
             },
             {
                 'id': 'q3',
-                'text': 'How many employees work in your manufacturing/production operations?',
+                'text': 'How many production employees do you have?',
                 'type': 'select',
-                'options': ['1-10 employees', '11-25 employees', '26-50 employees', '51-100 employees', '101-250 employees', '251-500 employees', 'Over 500 employees'],
+                'options': ['1-10', '11-25', '26-50', '51-100', '100+'],
                 'required': True
             },
             {
                 'id': 'q4',
-                'text': 'What is your company\'s annual revenue range?',
+                'text': 'What percentage of products require rework or fail quality checks?',
                 'type': 'select',
-                'options': ['Under $500K', '$500K - $2M', '$2M - $10M', '$10M - $50M', '$50M - $200M', 'Over $200M'],
+                'options': ['Less than 1%', '1-3%', '3-5%', '5-10%', 'More than 10%'],
                 'required': True
             },
             {
                 'id': 'q5',
-                'text': 'What are your biggest operational challenges and pain points? (Please describe in detail)',
-                'type': 'textarea',
-                'placeholder': 'Describe specific challenges like quality issues, production bottlenecks, labor shortages, cost pressures, etc.',
+                'text': 'What is your average monthly production volume?',
+                'type': 'select',
+                'options': ['Under 100 units', '100-1,000 units', '1,000-10,000 units', '10,000-100,000 units', 'Over 100,000 units'],
                 'required': True
             },
             {
                 'id': 'q6',
-                'text': 'How do you currently handle quality control and inspection?',
+                'text': 'How much unplanned equipment downtime do you experience monthly?',
                 'type': 'select',
-                'options': ['100% manual inspection', 'Statistical sampling with manual checks', 'Some automated testing equipment', 'Advanced automated inspection systems', 'AI-powered quality control', 'No formal quality control process'],
+                'options': ['Less than 4 hours', '4-16 hours', '16-40 hours', '40-80 hours', 'More than 80 hours'],
                 'required': True
             },
             {
                 'id': 'q7',
-                'text': 'What percentage of your production time is lost to defects, rework, or equipment downtime?',
+                'text': 'What percentage of your revenue comes from repeat customers?',
                 'type': 'select',
-                'options': ['Less than 5%', '5-10%', '10-20%', '20-30%', '30-50%', 'More than 50%', 'Not sure/No tracking'],
+                'options': ['Less than 20%', '20-40%', '40-60%', '60-80%', 'More than 80%'],
                 'required': True
             },
             {
                 'id': 'q8',
-                'text': 'How do you currently manage inventory, materials, and supply chain?',
+                'text': 'How do you currently track inventory and production?',
                 'type': 'select',
-                'options': ['Manual tracking (spreadsheets/paper)', 'Basic inventory software', 'ERP system integration', 'Advanced supply chain management system', 'AI-powered demand forecasting', 'Just-in-time/lean approach'],
+                'options': ['Paper/Manual', 'Spreadsheets', 'Basic software', 'ERP system', 'Real-time digital tracking'],
                 'required': True
             },
             {
                 'id': 'q9',
-                'text': 'What is your current level of automation in production processes?',
+                'text': 'What is your average inventory holding period?',
                 'type': 'select',
-                'options': ['Fully manual operations', 'Basic tools and equipment only', 'Some automated machinery', 'Moderate automation (30-50% of processes)', 'Highly automated (50-80% of processes)', 'Nearly fully automated (80%+ of processes)'],
+                'options': ['Less than 1 week', '1-2 weeks', '2-4 weeks', '1-2 months', 'More than 2 months'],
                 'required': True
             },
             {
                 'id': 'q10',
-                'text': 'How many customer service inquiries, complaints, or support requests do you handle per week?',
-                'type': 'select',
-                'options': ['Fewer than 10', '10-25', '25-50', '50-100', '100-250', 'More than 250', 'No formal tracking'],
+                'text': 'What are your top 2-3 operational pain points?',
+                'type': 'textarea',
+                'placeholder': 'Example: "Finding skilled workers", "Meeting delivery deadlines", "Material waste"',
                 'required': True
             },
             {
                 'id': 'q11',
-                'text': 'What is your typical annual budget for operational improvements and technology investments?',
-                'type': 'select',
-                'options': ['Under $25,000', '$25,000 - $75,000', '$75,000 - $200,000', '$200,000 - $500,000', '$500,000 - $1M', '$1M - $5M', 'Over $5M'],
-                'required': True
+                'text': 'Approximately what percentage of your total costs are:',
+                'type': 'cost_breakdown',
+                'required': True,
+                'fields': [
+                    {'name': 'labor', 'label': 'Labor'},
+                    {'name': 'materials', 'label': 'Materials'},
+                    {'name': 'overhead', 'label': 'Overhead'}
+                ]
             },
             {
                 'id': 'q12',
-                'text': 'Which specific areas would you most like to improve through automation or AI? What are your priorities and expected outcomes?',
+                'text': 'What specific measurable outcome would make an AI investment worthwhile for you?',
                 'type': 'textarea',
-                'placeholder': 'Describe your automation priorities: labor efficiency, quality control, inventory management, customer service, predictive maintenance, etc. Include expected benefits.',
+                'placeholder': 'Example: "Reduce overtime by 50%", "Cut defects in half", "Increase output 30%"',
                 'required': True
             }
         ]

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionnaire UI Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .question-container { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .cost-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .cost-field { display: flex; flex-direction: column; }
+        .cost-field label { margin-bottom: 5px; font-weight: bold; }
+        .cost-field input { padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
+        .total { margin-top: 10px; font-weight: bold; }
+        .valid { color: green; }
+        .invalid { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Questionnaire UI Test</h1>
+    
+    <div class="question-container">
+        <h3>Question 1: What type of products do you manufacture?</h3>
+        <select style="width: 100%; padding: 8px;">
+            <option value="">Select an option...</option>
+            <option value="Metal/Machined Parts">Metal/Machined Parts</option>
+            <option value="Plastic/Injection Molded Items">Plastic/Injection Molded Items</option>
+            <option value="Electronics/Assemblies">Electronics/Assemblies</option>
+            <option value="Food & Beverage Products">Food & Beverage Products</option>
+            <option value="Textiles/Apparel">Textiles/Apparel</option>
+            <option value="Mixed/Other">Mixed/Other</option>
+        </select>
+    </div>
+
+    <div class="question-container">
+        <h3>Question 11: Approximately what percentage of your total costs are:</h3>
+        <div class="cost-breakdown">
+            <div class="cost-field">
+                <label>Labor %</label>
+                <input type="number" id="labor" min="0" max="100" placeholder="0" oninput="calculateTotal()">
+            </div>
+            <div class="cost-field">
+                <label>Materials %</label>
+                <input type="number" id="materials" min="0" max="100" placeholder="0" oninput="calculateTotal()">
+            </div>
+            <div class="cost-field">
+                <label>Overhead %</label>
+                <input type="number" id="overhead" min="0" max="100" placeholder="0" oninput="calculateTotal()">
+            </div>
+        </div>
+        <div class="total" id="total-display">Total: 0.0% (must equal 100%)</div>
+    </div>
+
+    <div class="question-container">
+        <h3>Question 12: What specific measurable outcome would make an AI investment worthwhile for you?</h3>
+        <textarea rows="4" style="width: 100%; padding: 8px;" placeholder='Example: "Reduce overtime by 50%", "Cut defects in half", "Increase output 30%"'></textarea>
+    </div>
+
+    <script>
+        function calculateTotal() {
+            const labor = parseFloat(document.getElementById('labor').value) || 0;
+            const materials = parseFloat(document.getElementById('materials').value) || 0;
+            const overhead = parseFloat(document.getElementById('overhead').value) || 0;
+            const total = labor + materials + overhead;
+            
+            const totalDisplay = document.getElementById('total-display');
+            totalDisplay.textContent = `Total: ${total.toFixed(1)}% ${Math.abs(total - 100) < 0.1 ? '✓' : '(must equal 100%)'}`;
+            totalDisplay.className = Math.abs(total - 100) < 0.1 ? 'total valid' : 'total invalid';
+        }
+    </script>
+</body>
+</html>

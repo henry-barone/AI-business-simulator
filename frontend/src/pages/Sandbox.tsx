@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, TrendingUp, DollarSign, Calculator, ChevronDown, ChevronUp, Info, ArrowUp, ArrowDown } from 'lucide-react';
+import { Sparkles, TrendingUp, DollarSign, Calculator, ChevronDown, ChevronUp, Info, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
@@ -16,14 +16,57 @@ import {
   type ForecastData,
   type OperationalFactors
 } from '@/utils/simulationUtils';
+import { businessSimulationState } from '@/lib/businessSimulationState';
 
 interface SandboxProps {
   simulationData?: any;
 }
 
 const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
+  // State to hold current simulation data and questionnaire data
+  const [currentSimulationData, setCurrentSimulationData] = useState(() => {
+    const storedState = businessSimulationState.getState();
+    return simulationData || storedState.simulationData;
+  });
+  
+  const [questionnaireState, setQuestionnaireState] = useState(() => {
+    const storedState = businessSimulationState.getState();
+    return {
+      hasQuestionnaireData: storedState.questionnaireData && Object.keys(storedState.questionnaireData.answers).length > 0,
+      isQuestionnaireCompleted: businessSimulationState.isQuestionnaireCompleted(),
+      questionnaireData: storedState.questionnaireData
+    };
+  });
+
+  // Listen for state changes
+  useEffect(() => {
+    const cleanup = businessSimulationState.addListener(() => {
+      const newState = businessSimulationState.getState();
+      
+      // Update simulation data if it changed
+      const newSimulationData = simulationData || newState.simulationData;
+      if (newSimulationData !== currentSimulationData) {
+        setCurrentSimulationData(newSimulationData);
+      }
+      
+      // Update questionnaire state
+      const newQuestionnaireState = {
+        hasQuestionnaireData: newState.questionnaireData && Object.keys(newState.questionnaireData.answers).length > 0,
+        isQuestionnaireCompleted: businessSimulationState.isQuestionnaireCompleted(),
+        questionnaireData: newState.questionnaireData
+      };
+      
+      setQuestionnaireState(newQuestionnaireState);
+    });
+
+    return cleanup;
+  }, [simulationData, currentSimulationData]);
+
+  // Use the reactive simulation data
+  const activeSimulationData = currentSimulationData;
+  
   // Extract P&L data from simulation or use defaults
-  const baselineData: PLData = useMemo(() => extractPLData(simulationData), [simulationData]);
+  const baselineData: PLData = useMemo(() => extractPLData(activeSimulationData), [activeSimulationData]);
   // Slider state - calculate ranges based on baseline data
   const priceRange = {
     min: Math.round(baselineData.averagePrice * 0.7),
@@ -109,6 +152,9 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
     };
   }, [baselineData, laborAutomation, productionEfficiency, inventoryTurnover, marketingValue]);
 
+  // Use the reactive questionnaire state
+  const { hasQuestionnaireData, isQuestionnaireCompleted, questionnaireData } = questionnaireState;
+
   return (
     <div className="container mx-auto px-6 py-16">
       <div className="mb-12 text-center">
@@ -116,6 +162,33 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
         <p className="text-xl professional-text max-w-3xl mx-auto">
           Experiment with key business variables and see their impact in real-time
         </p>
+        
+        {/* Show status of questionnaire data */}
+        {hasQuestionnaireData && (
+          <div className="mt-4 max-w-2xl mx-auto">
+            <Card className={`${isQuestionnaireCompleted ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  {isQuestionnaireCompleted ? (
+                    <>
+                      <Sparkles className="w-4 h-4 text-green-600" />
+                      <span className="text-green-700 font-medium">
+                        Using your completed business assessment data
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-700 font-medium">
+                        Using partial assessment data ({Object.keys(questionnaireData?.answers || {}).length}/12 questions answered)
+                      </span>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -533,8 +606,28 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <div className="text-sm text-gray-600 mb-2">AI Recommendations</div>
+                <div className="text-sm text-gray-600 mb-2">
+                  AI Recommendations
+                  {hasQuestionnaireData && (
+                    <span className="ml-2 text-green-600 font-medium">(Based on your assessment)</span>
+                  )}
+                </div>
                 <div className="space-y-2">
+                  {/* Enhanced recommendations based on questionnaire data */}
+                  {hasQuestionnaireData && questionnaireData?.answers['q1'] && (
+                    <p className="text-sm professional-text font-medium text-blue-700">
+                      Manufacturing {questionnaireData.answers['q1']}: {
+                        questionnaireData.answers['q1'].includes('Metal') 
+                          ? 'Focus on precision automation and quality control systems.'
+                          : questionnaireData.answers['q1'].includes('Electronics')
+                          ? 'Prioritize component tracking and automated testing systems.'
+                          : questionnaireData.answers['q1'].includes('Food')
+                          ? 'Emphasize hygiene automation and inventory freshness tracking.'
+                          : 'Consider industry-specific automation solutions.'
+                      }
+                    </p>
+                  )}
+                  
                   <p className="text-sm professional-text">
                     {priceValue > baselineData.averagePrice 
                       ? `Higher pricing (+${(((priceValue - baselineData.averagePrice) / baselineData.averagePrice) * 100).toFixed(1)}%) may reduce demand but increase margins.`
@@ -542,11 +635,13 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
                       ? `Lower pricing (-${(((baselineData.averagePrice - priceValue) / baselineData.averagePrice) * 100).toFixed(1)}%) should increase demand volume.`
                       : 'Current pricing at baseline level.'}
                   </p>
+                  
                   <p className="text-sm professional-text">
                     {marketingValue > baselineData.marketingSpend 
                       ? `Marketing investment shows diminishing returns beyond $${(baselineData.marketingSpend / 1000).toFixed(0)}k/month.`
                       : 'Consider increasing marketing spend for potential revenue growth.'}
                   </p>
+                  
                   <p className="text-sm professional-text">
                     {laborAutomation > 40 && productionEfficiency < 120 
                       ? 'High automation with low efficiency gains suggests focusing on process optimization first.'
@@ -556,6 +651,7 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
                       ? 'Consider gradual automation to reduce labor costs while maintaining quality.'
                       : 'Current automation level is well-balanced.'}
                   </p>
+                  
                   <p className="text-sm professional-text">
                     {inventoryTurnover > 10 
                       ? 'High inventory turnover requires robust supply chain management.'
@@ -563,6 +659,19 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
                       ? 'Consider improving inventory management to reduce carrying costs.'
                       : 'Inventory turnover rate is within optimal range.'}
                   </p>
+                  
+                  {/* Additional insights based on questionnaire */}
+                  {hasQuestionnaireData && questionnaireData?.answers['q4'] && (
+                    <p className="text-sm professional-text text-orange-700">
+                      Quality insight: {questionnaireData.answers['q4']} defect rate suggests {
+                        questionnaireData.answers['q4'].includes('1%') || questionnaireData.answers['q4'].includes('Less')
+                          ? 'excellent quality control - focus on maintaining standards.'
+                          : questionnaireData.answers['q4'].includes('10%') || questionnaireData.answers['q4'].includes('More')
+                          ? 'urgent need for quality automation and process improvements.'
+                          : 'moderate improvement opportunities in quality systems.'
+                      }
+                    </p>
+                  )}
                 </div>
               </div>
               
