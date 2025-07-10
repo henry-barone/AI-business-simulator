@@ -596,7 +596,7 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
             </CardContent>
           </Card>
           
-          {/* AI Advisor */}
+          {/* AI Insights */}
           <Card className="professional-card">
             <CardHeader>
               <CardTitle className="text-xl professional-heading flex items-center gap-2">
@@ -605,78 +605,114 @@ const Sandbox: React.FC<SandboxProps> = ({ simulationData }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <div className="text-sm text-gray-600 mb-2">
-                  AI Recommendations
-                  {hasQuestionnaireData && (
-                    <span className="ml-2 text-green-600 font-medium">(Based on your assessment)</span>
-                  )}
+              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-5 border border-purple-100">
+                {/* Key Insight Headline */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🎯</span>
+                    <h3 className="text-lg font-bold text-gray-900">Key Insight</h3>
+                  </div>
+                  <p className="text-gray-800 font-medium leading-relaxed">
+                    {laborAutomation > 40 
+                      ? `Your biggest opportunity is in labor automation, with potential annual savings of $${Math.round(((laborAutomation - 10) / 100) * baselineData.monthlyLabor * 12).toLocaleString()}.`
+                      : marketingValue > baselineData.marketingSpend * 1.5
+                      ? `Marketing optimization shows the highest ROI potential with projected $${Math.round(summaryMetrics.annualDifference * 0.4).toLocaleString()} annual impact.`
+                      : productionEfficiency > 120
+                      ? `Production efficiency improvements could deliver $${Math.round(((productionEfficiency - 100) / 100) * baselineData.monthlyCOGS * 12 * 0.15).toLocaleString()}/year in cost savings.`
+                      : `Focus on gradual automation to achieve $${Math.round(baselineData.monthlyLabor * 12 * 0.2).toLocaleString()}/year in labor cost reductions.`}
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  {/* Enhanced recommendations based on questionnaire data */}
-                  {hasQuestionnaireData && questionnaireData?.answers['q1'] && (
-                    <p className="text-sm professional-text font-medium text-blue-700">
-                      Manufacturing {questionnaireData.answers['q1']}: {
-                        questionnaireData.answers['q1'].includes('Metal') 
-                          ? 'Focus on precision automation and quality control systems.'
-                          : questionnaireData.answers['q1'].includes('Electronics')
-                          ? 'Prioritize component tracking and automated testing systems.'
-                          : questionnaireData.answers['q1'].includes('Food')
-                          ? 'Emphasize hygiene automation and inventory freshness tracking.'
-                          : 'Consider industry-specific automation solutions.'
-                      }
-                    </p>
-                  )}
+
+                {/* Divider */}
+                <div className="border-t border-purple-200 my-4"></div>
+
+                {/* Analysis Highlights */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">📊</span>
+                    <h4 className="text-base font-bold text-gray-900">Analysis Highlights</h4>
+                  </div>
                   
-                  <p className="text-sm professional-text">
-                    {priceValue > baselineData.averagePrice 
-                      ? `Higher pricing (+${(((priceValue - baselineData.averagePrice) / baselineData.averagePrice) * 100).toFixed(1)}%) may reduce demand but increase margins.`
-                      : priceValue < baselineData.averagePrice 
-                      ? `Lower pricing (-${(((baselineData.averagePrice - priceValue) / baselineData.averagePrice) * 100).toFixed(1)}%) should increase demand volume.`
-                      : 'Current pricing at baseline level.'}
-                  </p>
-                  
-                  <p className="text-sm professional-text">
-                    {marketingValue > baselineData.marketingSpend 
-                      ? `Marketing investment shows diminishing returns beyond $${(baselineData.marketingSpend / 1000).toFixed(0)}k/month.`
-                      : 'Consider increasing marketing spend for potential revenue growth.'}
-                  </p>
-                  
-                  <p className="text-sm professional-text">
-                    {laborAutomation > 40 && productionEfficiency < 120 
-                      ? 'High automation with low efficiency gains suggests focusing on process optimization first.'
-                      : laborAutomation > 60 
-                      ? 'High automation levels may require significant change management investment.'
-                      : laborAutomation < 30 
-                      ? 'Consider gradual automation to reduce labor costs while maintaining quality.'
-                      : 'Current automation level is well-balanced.'}
-                  </p>
-                  
-                  <p className="text-sm professional-text">
-                    {inventoryTurnover > 10 
-                      ? 'High inventory turnover requires robust supply chain management.'
-                      : inventoryTurnover < 8 
-                      ? 'Consider improving inventory management to reduce carrying costs.'
-                      : 'Inventory turnover rate is within optimal range.'}
-                  </p>
-                  
-                  {/* Additional insights based on questionnaire */}
-                  {hasQuestionnaireData && questionnaireData?.answers['q4'] && (
-                    <p className="text-sm professional-text text-orange-700">
-                      Quality insight: {questionnaireData.answers['q4']} defect rate suggests {
-                        questionnaireData.answers['q4'].includes('1%') || questionnaireData.answers['q4'].includes('Less')
-                          ? 'excellent quality control - focus on maintaining standards.'
-                          : questionnaireData.answers['q4'].includes('10%') || questionnaireData.answers['q4'].includes('More')
-                          ? 'urgent need for quality automation and process improvements.'
-                          : 'moderate improvement opportunities in quality systems.'
-                      }
-                    </p>
-                  )}
+                  <div className="space-y-2 ml-1">
+                    {/* Labor Efficiency */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">💰</span>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-gray-900">Labor Efficiency:</span>
+                        <span className="text-sm text-gray-700 ml-1">
+                          {laborAutomation > 30 
+                            ? `${Math.round(((laborAutomation - 10) / 70) * 100)}% improvement possible ($${Math.round(((laborAutomation - 10) / 100) * baselineData.monthlyLabor * 12).toLocaleString()}/year)`
+                            : `${Math.round(((20) / 70) * 100)}% improvement with basic automation ($${Math.round((20 / 100) * baselineData.monthlyLabor * 12).toLocaleString()}/year)`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Production Quality */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">✅</span>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-gray-900">Quality Control:</span>
+                        <span className="text-sm text-gray-700 ml-1">
+                          {productionEfficiency > 120 
+                            ? `${Math.round(((productionEfficiency - 100) / 50) * 45)}% defect reduction achievable ($${Math.round(((productionEfficiency - 100) / 100) * baselineData.monthlyCOGS * 12 * 0.1).toLocaleString()}/year)`
+                            : `${Math.round((20 / 50) * 45)}% defect reduction with process optimization ($${Math.round((baselineData.monthlyCOGS * 12 * 0.05)).toLocaleString()}/year)`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Inventory Optimization */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">📈</span>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-gray-900">Inventory Optimization:</span>
+                        <span className="text-sm text-gray-700 ml-1">
+                          {inventoryTurnover > 8 
+                            ? `${Math.round(((inventoryTurnover - 6) / 6) * 100)}% reduction in carrying costs ($${Math.round(((inventoryTurnover - 6) / 6) * baselineData.monthlyOverhead * 12 * 0.3).toLocaleString()}/year)`
+                            : `${Math.round((2 / 6) * 100)}% reduction potential with better turnover ($${Math.round((2 / 6) * baselineData.monthlyOverhead * 12 * 0.3).toLocaleString()}/year)`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* ROI Timeline */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">⏱️</span>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-gray-900">ROI Timeline:</span>
+                        <span className="text-sm text-gray-700 ml-1">
+                          {summaryMetrics.roi > 50 
+                            ? `${Math.round(12 / (summaryMetrics.roi / 100))}-month payback period for current optimizations`
+                            : summaryMetrics.roi > 0
+                            ? `${Math.round(24 / (summaryMetrics.roi / 100))}-month payback period with gradual implementation`
+                            : `Focus on quick wins with 6-8 month payback potential`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Additional context based on questionnaire */}
+                {hasQuestionnaireData && questionnaireData?.answers['q1'] && (
+                  <>
+                    <div className="border-t border-purple-200 my-4"></div>
+                    <div className="bg-white/50 rounded-lg p-3 border border-purple-100">
+                      <p className="text-sm text-purple-800 font-medium">
+                        <span className="font-semibold">Industry Context:</span> {questionnaireData.answers['q1']} manufacturing typically benefits from {
+                          questionnaireData.answers['q1'].includes('Metal') 
+                            ? 'precision automation and quality control systems'
+                            : questionnaireData.answers['q1'].includes('Electronics')
+                            ? 'component tracking and automated testing systems'
+                            : questionnaireData.answers['q1'].includes('Food')
+                            ? 'hygiene automation and inventory freshness tracking'
+                            : 'industry-specific automation solutions'
+                        } as priority improvements.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
               
               <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-3">Based on these insights:</div>
+                <div className="text-sm text-gray-600 mb-3">Ready to implement these insights?</div>
                 <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 px-4 font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
                   <DollarSign className="w-4 h-4" />
                   Get Full Analysis →
