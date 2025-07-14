@@ -274,6 +274,16 @@ const BusinessSimulation = () => {
                     <Calendar className="w-4 h-4" />
                     Book Consultation
                   </Button>
+                  <Button 
+                    variant="outline"
+                    className="border-purple-600 text-purple-600 hover:bg-purple-50 flex items-center gap-2"
+                    onClick={() => {
+                      // Navigate to sandbox with current parameters
+                      window.location.href = '/sandbox';
+                    }}
+                  >
+                    ← Test in Sandbox
+                  </Button>
                   {fullReportData && (
                     <PDFReportGenerator
                       data={fullReportData}
